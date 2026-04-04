@@ -35,6 +35,7 @@ class Claim(Base):
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="created", index=True)
     admin_status: Mapped[str] = mapped_column(String(40), nullable=False, default="pending_review", index=True)
     admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    farmer_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
     recommended_insurance_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     pmfby_reference_url: Mapped[str] = mapped_column(String(255), nullable=False, default="https://pmfby.gov.in/")

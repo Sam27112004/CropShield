@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, MapPinned, ShieldCheck, Satellite, ChevronLeft, ExternalLink, RefreshCw, Lock } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ExternalLink, Loader2, Lock, MapPinned, RefreshCw, Satellite, ShieldCheck, XCircle } from 'lucide-react';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
 import { useClaims } from '@/hooks/useApi';
-import { ApiError, analyzeClaim, createClaim, createFarmProfile, getFarmOptions, waitForJobCompletion } from '@/lib/api';
-import type { Claim, FarmOptionsResponse, FarmProfile } from '@/types/api';
+import { ApiError, analyzeClaim, createClaim, createFarmProfile, getAnalysis, getFarmOptions, submitFarmerNotes, waitForJobCompletion } from '@/lib/api';
+import type { Claim, FarmOptionsResponse, FarmProfile, JobStatusResponse } from '@/types/api';
 
 type Step = 1 | 2 | 3 | 4;
 type EntryMode = 'automation' | 'manual';
@@ -16,14 +16,69 @@ function canViewDetailedReport(claim: Claim): boolean {
   return claim.admin_status === 'approved';
 }
 
-function getFarmerStatusLabel(claim: Claim): string {
-  if (claim.admin_status === 'approved') return 'Approved by Admin';
-  if (claim.admin_status === 'rejected') return 'Rejected by Admin';
-  if (claim.admin_status === 'needs_more_info') return 'Needs More Information';
-  if (claim.status === 'failed') return 'Analysis Failed';
-  if (claim.status === 'analysis_running') return 'Analysis In Progress';
-  if (claim.status === 'analysis_completed') return 'Pending Admin Review';
-  return 'Submitted';
+function getStatusDescriptor(claim: Claim): { label: string; tone: string; spinner?: boolean; retry?: boolean } {
+  if (claim.admin_status === 'approved') {
+    return { label: 'Approved - report available', tone: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+  }
+  if (claim.admin_status === 'rejected') {
+    return { label: 'Rejected', tone: 'bg-rose-100 text-rose-800 border-rose-300' };
+  }
+  if (claim.admin_status === 'needs_more_info') {
+    return { label: 'More information needed', tone: 'bg-amber-100 text-amber-900 border-amber-300' };
+  }
+  if (claim.status === 'analysis_running') {
+    return { label: 'Analysis running...', tone: 'bg-blue-100 text-blue-800 border-blue-300', spinner: true };
+  }
+  if (claim.status === 'analysis_completed' || claim.status === 'pending_admin_review') {
+    return { label: 'Under admin review', tone: 'bg-sky-100 text-sky-800 border-sky-300' };
+  }
+  if (claim.status === 'failed') {
+    return { label: 'Analysis failed - retry available', tone: 'bg-orange-100 text-orange-900 border-orange-300', retry: true };
+  }
+  return { label: 'Submitted - waiting for review', tone: 'bg-slate-100 text-slate-700 border-slate-300' };
+}
+
+function ClaimStatusBadge({ claim }: { claim: Claim }) {
+  const descriptor = getStatusDescriptor(claim);
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${descriptor.tone}`}>
+      {descriptor.spinner ? <Loader2 size={12} className="animate-spin" /> : null}
+      {descriptor.label}
+    </span>
+  );
+}
+
+function normalizeFailureReason(message?: string | null): string {
+  if (!message) {
+    return 'Satellite imagery could not be processed for the selected period. Please retry with a wider date range.';
+  }
+  const withoutAttemptDetails = message.replace(/expanded attempts:\s*[^)]*\)/i, '').trim();
+  return withoutAttemptDetails.replace(/\s+/g, ' ');
+}
+
+function calculateAnalysisParams(
+  damageDate: string,
+  startDate: string,
+  endDate: string,
+  maxCloudThreshold: number,
+  upscaleFactor: number,
+) {
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const damage = new Date(`${damageDate}T00:00:00`);
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+
+  const gapBefore = Math.max(1, Math.ceil((damage.getTime() - start.getTime()) / MS_PER_DAY));
+  const gapAfter = Math.max(1, Math.ceil((end.getTime() - damage.getTime()) / MS_PER_DAY));
+  const windowDays = Math.max(7, Math.min(45, Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY) + 1));
+
+  return {
+    gap_before: gapBefore,
+    gap_after: gapAfter,
+    window_days: windowDays,
+    max_cloud_threshold: maxCloudThreshold,
+    upscale_factor: upscaleFactor,
+  };
 }
 
 export default function FarmerRequestsPage() {
@@ -37,6 +92,17 @@ export default function FarmerRequestsPage() {
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [entryMode, setEntryMode] = useState<EntryMode>('automation');
   const [submittedClaimId, setSubmittedClaimId] = useState<number | null>(null);
+  const [jobProgress, setJobProgress] = useState(0);
+  const [retryClaimId, setRetryClaimId] = useState<number | null>(null);
+  const [retryStartDate, setRetryStartDate] = useState(new Date(Date.now() - (10 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10));
+  const [retryEndDate, setRetryEndDate] = useState(new Date().toISOString().slice(0, 10));
+  const [retryFailureReason, setRetryFailureReason] = useState('');
+  const [retryBusy, setRetryBusy] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+  const [retryJob, setRetryJob] = useState<JobStatusResponse | null>(null);
+  const [farmerNotesDraft, setFarmerNotesDraft] = useState<Record<number, string>>({});
+  const [farmerNotesBusyId, setFarmerNotesBusyId] = useState<number | null>(null);
+  const [farmerNotesErrorById, setFarmerNotesErrorById] = useState<Record<number, string>>({});
 
   const claimsQuery = useClaims({ limit: 100, offset: 0 });
   const claims = claimsQuery.data?.items ?? [];
@@ -255,23 +321,87 @@ export default function FarmerRequestsPage() {
     setStep(3);
   };
 
-  const buildAnalysisParams = () => {
-    const MS_PER_DAY = 24 * 60 * 60 * 1000;
-    const damageDate = new Date(`${claimForm.damage_date}T00:00:00`);
-    const startDate = new Date(`${claimForm.analysis_start_date}T00:00:00`);
-    const endDate = new Date(`${claimForm.analysis_end_date}T00:00:00`);
+  const buildAnalysisParams = () =>
+    calculateAnalysisParams(
+      claimForm.damage_date,
+      claimForm.analysis_start_date,
+      claimForm.analysis_end_date,
+      claimForm.max_cloud_threshold,
+      claimForm.upscale_factor,
+    );
 
-    const gapBefore = Math.max(1, Math.ceil((damageDate.getTime() - startDate.getTime()) / MS_PER_DAY));
-    const gapAfter = Math.max(1, Math.ceil((endDate.getTime() - damageDate.getTime()) / MS_PER_DAY));
-    const windowDays = Math.max(7, Math.min(45, Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1));
+  const openRetryPanel = async (claim: Claim) => {
+    const damageDate = new Date(`${claim.damage_date}T00:00:00`);
+    const startDate = new Date(damageDate.getTime() - (10 * 24 * 60 * 60 * 1000));
+    const endDate = new Date(damageDate.getTime() + (10 * 24 * 60 * 60 * 1000));
+    setRetryStartDate(startDate.toISOString().slice(0, 10));
+    setRetryEndDate(endDate.toISOString().slice(0, 10));
+    setRetryClaimId(claim.id);
+    setRetryError(null);
+    setRetryJob(null);
+    try {
+      const latest = await getAnalysis(claim.id);
+      setRetryFailureReason(normalizeFailureReason(latest.analysis?.status_message));
+    } catch {
+      setRetryFailureReason(normalizeFailureReason());
+    }
+  };
 
-    return {
-      gap_before: gapBefore,
-      gap_after: gapAfter,
-      window_days: windowDays,
-      max_cloud_threshold: claimForm.max_cloud_threshold,
-      upscale_factor: claimForm.upscale_factor,
-    };
+  const submitRetryAnalysis = async (claim: Claim) => {
+    setRetryError(null);
+    if (retryStartDate > retryEndDate) {
+      setRetryError('Analysis start date must be on or before analysis end date.');
+      return;
+    }
+    setRetryBusy(true);
+    try {
+      const params = calculateAnalysisParams(
+        claim.damage_date,
+        retryStartDate,
+        retryEndDate,
+        claimForm.max_cloud_threshold,
+        claimForm.upscale_factor,
+      );
+      const job = await analyzeClaim(claim.id, params);
+      const latest = await waitForJobCompletion(job.job_id, {
+        timeoutMs: 10 * 60_000,
+        onUpdate: (update) => setRetryJob(update),
+      });
+      if (latest.status === 'failed') {
+        setRetryFailureReason(normalizeFailureReason(latest.error_message));
+        throw new Error(normalizeFailureReason(latest.error_message));
+      }
+      await claimsQuery.refetch();
+      setRetryClaimId(null);
+      setSubmittedClaimId(claim.id);
+    } catch (err) {
+      setRetryError(String(err));
+    } finally {
+      setRetryBusy(false);
+    }
+  };
+
+  const submitNeedsMoreInfoNotes = async (claimId: number) => {
+    const notes = (farmerNotesDraft[claimId] ?? '').trim();
+    if (!notes) {
+      setFarmerNotesErrorById((prev) => ({ ...prev, [claimId]: 'Please enter additional details before submitting.' }));
+      return;
+    }
+    setFarmerNotesBusyId(claimId);
+    setFarmerNotesErrorById((prev) => ({ ...prev, [claimId]: '' }));
+    try {
+      await submitFarmerNotes(claimId, { notes });
+      setFarmerNotesDraft((prev) => ({ ...prev, [claimId]: '' }));
+      await claimsQuery.refetch();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setFarmerNotesErrorById((prev) => ({ ...prev, [claimId]: `Unable to submit notes (${err.status}).` }));
+      } else {
+        setFarmerNotesErrorById((prev) => ({ ...prev, [claimId]: `Unable to submit notes: ${String(err)}` }));
+      }
+    } finally {
+      setFarmerNotesBusyId(null);
+    }
   };
 
   const submitClaim = async () => {
@@ -279,6 +409,7 @@ export default function FarmerRequestsPage() {
     setError(null);
     setLoading(true);
     setStep(4);
+    setJobProgress(0);
     setJobInfo('Creating request...');
 
     try {
@@ -306,7 +437,10 @@ export default function FarmerRequestsPage() {
       setJobInfo('Analysis queued. Streaming progress...');
       const latest = await waitForJobCompletion(job.job_id, {
         timeoutMs: 10 * 60_000,
-        onUpdate: (update) => setJobInfo(`Analysis status: ${update.status} (${update.progress ?? 0}%)`),
+        onUpdate: (update) => {
+          setJobProgress(update.progress ?? 0);
+          setJobInfo(`Analysis status: ${update.status} (${update.progress ?? 0}%)`);
+        },
       });
 
       if (latest.status === 'failed') {
@@ -403,19 +537,38 @@ export default function FarmerRequestsPage() {
                   const approved = canViewDetailedReport(claim);
                   const highlight = submittedClaimId === claim.id;
                   return (
-                    <tr key={claim.id} className={`border-b border-primary/5 ${highlight ? 'bg-primary/5' : ''}`}>
+                    <Fragment key={claim.id}>
+                    <tr className={`border-b border-primary/5 ${highlight ? 'bg-primary/5' : ''}`}>
                       <td className="px-5 py-4 font-mono text-sm">#{claim.id}</td>
                       <td className="px-5 py-4 text-sm">{claim.farmer_name}</td>
                       <td className="px-5 py-4 text-sm">{claim.crop_type}</td>
                       <td className="px-5 py-4 text-sm">{claim.damage_date}</td>
-                      <td className="px-5 py-4 text-sm">{getFarmerStatusLabel(claim)}</td>
-                      <td className="px-5 py-4 text-sm">{claim.admin_status}</td>
+                      <td className="px-5 py-4 text-sm"><ClaimStatusBadge claim={claim} /></td>
+                      <td className="px-5 py-4 text-sm">
+                        <p className="font-semibold capitalize">{claim.admin_status.replaceAll('_', ' ')}</p>
+                        {claim.admin_status === 'rejected' && claim.admin_notes ? (
+                          <p className="text-xs text-red-700 mt-1">{claim.admin_notes}</p>
+                        ) : null}
+                        {claim.admin_status === 'needs_more_info' && claim.admin_notes ? (
+                          <p className="text-xs text-amber-800 mt-1">{claim.admin_notes}</p>
+                        ) : null}
+                      </td>
                       <td className="px-5 py-4 text-sm">
                         {approved ? (
                           <Link href={`/analysis/${claim.id}`} className="inline-flex items-center gap-1 text-primary font-semibold no-underline">
+                            <CheckCircle2 size={14} />
                             View Detailed Report
                             <ExternalLink size={14} />
                           </Link>
+                        ) : claim.status === 'failed' ? (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded-lg border border-orange-300 bg-orange-50 px-2.5 py-1.5 text-orange-900 font-semibold"
+                            onClick={() => openRetryPanel(claim)}
+                          >
+                            <AlertTriangle size={14} />
+                            Retry Analysis
+                          </button>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-foreground-dim">
                             <Lock size={13} />
@@ -424,6 +577,99 @@ export default function FarmerRequestsPage() {
                         )}
                       </td>
                     </tr>
+                    {retryClaimId === claim.id ? (
+                      <tr className="border-b border-primary/5 bg-orange-50/50">
+                        <td colSpan={7} className="px-5 py-4">
+                          <div className="rounded-xl border border-orange-200 bg-white p-4">
+                            <p className="text-sm font-semibold text-orange-900 mb-2">Analysis failed - retry available</p>
+                            <p className="text-sm text-orange-800 mb-3">{retryFailureReason}</p>
+                            <div className="grid md:grid-cols-2 gap-3 mb-3">
+                              <label className="flex flex-col gap-1 text-sm">
+                                Analysis Start
+                                <input
+                                  type="date"
+                                  className={numberInputClass}
+                                  value={retryStartDate}
+                                  onChange={(e) => setRetryStartDate(e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-sm">
+                                Analysis End
+                                <input
+                                  type="date"
+                                  className={numberInputClass}
+                                  value={retryEndDate}
+                                  onChange={(e) => setRetryEndDate(e.target.value)}
+                                />
+                              </label>
+                            </div>
+                            {retryJob ? (
+                              <p className="text-xs text-foreground-dim mb-2">
+                                Retry status: {retryJob.status} ({retryJob.progress ?? 0}%)
+                              </p>
+                            ) : null}
+                            {retryError ? <p className="text-xs text-red-700 mb-2">{retryError}</p> : null}
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="btn-premium"
+                                disabled={retryBusy}
+                                onClick={() => submitRetryAnalysis(claim)}
+                              >
+                                {retryBusy ? <Loader2 size={14} className="animate-spin" /> : null}
+                                Retry Analysis
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold"
+                                disabled={retryBusy}
+                                onClick={() => setRetryClaimId(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                    {claim.admin_status === 'needs_more_info' ? (
+                      <tr className="border-b border-primary/5 bg-amber-50/40">
+                        <td colSpan={7} className="px-5 py-4">
+                          <div className="rounded-xl border border-amber-200 bg-white p-4">
+                            <p className="text-sm font-semibold text-amber-900 mb-2 inline-flex items-center gap-2">
+                              <XCircle size={14} />
+                              More information requested by admin
+                            </p>
+                            <textarea
+                              className="w-full rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm outline-none focus:border-primary min-h-[96px]"
+                              placeholder="Share additional notes or evidence requested by the admin..."
+                              value={farmerNotesDraft[claim.id] ?? ''}
+                              onChange={(e) =>
+                                setFarmerNotesDraft((prev) => ({
+                                  ...prev,
+                                  [claim.id]: e.target.value,
+                                }))
+                              }
+                            />
+                            {farmerNotesErrorById[claim.id] ? (
+                              <p className="text-xs text-red-700 mt-2">{farmerNotesErrorById[claim.id]}</p>
+                            ) : null}
+                            <div className="mt-3 flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="btn-premium"
+                                onClick={() => submitNeedsMoreInfoNotes(claim.id)}
+                                disabled={farmerNotesBusyId === claim.id}
+                              >
+                                {farmerNotesBusyId === claim.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                                Submit Notes
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                   );
                 })}
               </tbody>
@@ -830,6 +1076,15 @@ export default function FarmerRequestsPage() {
               <Loader2 size={28} className="animate-spin text-primary mx-auto mb-4" />
               <p className="text-lg font-semibold text-foreground-main mb-2">Submitting your request...</p>
               <p className="text-sm text-foreground-muted">{jobInfo}</p>
+              <div className="mt-4 max-w-md mx-auto">
+                <div className="h-2 rounded-full bg-primary/15 overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{ width: `${Math.max(0, Math.min(100, jobProgress))}%` }}
+                  />
+                </div>
+                <p className="text-xs text-foreground-dim mt-2">{Math.round(jobProgress)}% complete</p>
+              </div>
             </section>
           ) : null}
 

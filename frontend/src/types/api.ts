@@ -136,6 +136,7 @@ export interface Claim {
   status: ClaimStatus | string;
   admin_status: string;
   admin_notes?: string | null;
+  farmer_notes?: string | null;
   reviewed_by?: string | null;
   recommended_insurance_amount?: number | null;
   pmfby_reference_url: string;
@@ -153,6 +154,10 @@ export interface ClaimsListResponse {
 export interface AnalyzeResponse {
   job_id: string;
   status: JobStatus;
+}
+
+export interface FarmerNotesRequest {
+  notes: string;
 }
 
 export interface ReportMetadata {

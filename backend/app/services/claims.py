@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException, status
 
 from app.core.exceptions import NotFoundError
 from app.repositories.claims import ClaimRepository
 from app.repositories.farms import FarmRepository
+from app.schemas.auth import AuthenticatedUser
 from app.schemas.claim import ClaimCreateRequest
 
 
@@ -52,4 +54,20 @@ class ClaimService:
         claim = await self.repo.get_by_id(claim_id)
         if claim is None:
             raise NotFoundError(f"Claim '{claim_id}' was not found.")
+        return claim
+
+    async def submit_farmer_notes(self, *, claim_id: int, notes: str, current_user: AuthenticatedUser):
+        if current_user.role != "farmer":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+        claim = await self.get_claim_or_404(claim_id)
+        if claim.farmer_user_id != current_user.farmer_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+        claim.farmer_notes = notes
+        claim.admin_status = "pending_review"
+        claim.status = "created"
+
+        await self.session.commit()
+        await self.session.refresh(claim)
         return claim

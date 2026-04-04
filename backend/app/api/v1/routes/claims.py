@@ -22,7 +22,14 @@ from app.schemas.analysis import (
     DecisionRead,
     IndexMetricsRead,
 )
-from app.schemas.claim import AnalyzeClaimRequest, ClaimCreateRequest, ClaimListResponse, ClaimRead, JobAcceptedResponse
+from app.schemas.claim import (
+    AnalyzeClaimRequest,
+    ClaimCreateRequest,
+    ClaimListResponse,
+    ClaimRead,
+    FarmerNotesRequest,
+    JobAcceptedResponse,
+)
 from app.schemas.report import ReportCreateRequest, ReportMetadataResponse
 from app.services.analysis_pipeline import AnalysisPipelineService
 from app.services.claims import ClaimService
@@ -62,6 +69,7 @@ def _to_claim_schema(claim) -> ClaimRead:
         status=claim.status,
         admin_status=claim.admin_status,
         admin_notes=claim.admin_notes,
+        farmer_notes=claim.farmer_notes,
         reviewed_by=claim.reviewed_by,
         recommended_insurance_amount=(
             float(claim.recommended_insurance_amount) if claim.recommended_insurance_amount is not None else None
@@ -235,6 +243,18 @@ async def analyze_claim(
     jobs = JobService(session)
     job = await jobs.enqueue_analysis(claim_id=claim_id, request=payload)
     return JobAcceptedResponse(job_id=job.id, status=job.status)
+
+
+@router.patch("/{claim_id}/farmer-notes", response_model=ClaimRead)
+async def submit_farmer_notes(
+    claim_id: int,
+    payload: FarmerNotesRequest,
+    session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ClaimRead:
+    service = ClaimService(session)
+    claim = await service.submit_farmer_notes(claim_id=claim_id, notes=payload.notes, current_user=current_user)
+    return _to_claim_schema(claim)
 
 
 @router.get("/{claim_id}/analysis", response_model=ClaimAnalysisResponse)

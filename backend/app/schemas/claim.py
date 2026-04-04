@@ -66,6 +66,7 @@ class ClaimRead(BaseModel):
     status: str
     admin_status: str
     admin_notes: str | None = None
+    farmer_notes: str | None = None
     reviewed_by: str | None = None
     recommended_insurance_amount: float | None = None
     pmfby_reference_url: str
@@ -91,3 +92,15 @@ class AnalyzeClaimRequest(BaseModel):
 class JobAcceptedResponse(BaseModel):
     job_id: str
     status: str
+
+
+class FarmerNotesRequest(BaseModel):
+    notes: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("notes")
+    @classmethod
+    def _strip_notes(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("notes must not be empty")
+        return cleaned

@@ -97,7 +97,12 @@ class AnalysisPipelineService:
             metrics, maps = compute_metrics(before_scene.bands, after_scene.bands)
             ai_result = self.ai_inference.predict(after_scene.rgb_image)
             decision_result = self.decision.evaluate_claim(
-                ndvi_drop=metrics.damage_percentage,
+                ndvi_before=metrics.ndvi_before,
+                ndvi_after=metrics.ndvi_after,
+                ndwi_before=metrics.ndwi_before,
+                ndwi_after=metrics.ndwi_after,
+                evi_before=metrics.evi_before,
+                evi_after=metrics.evi_after,
                 ai_damage_probability=ai_result.damage_probability,
                 damaged_area_percentage=ai_result.damaged_area_percentage,
             )

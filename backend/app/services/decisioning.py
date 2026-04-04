@@ -3,6 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+def _clamp_percentage(value: float) -> float:
+    return max(0.0, min(100.0, float(value)))
+
+
+def _index_drop_to_damage(before: float, after: float, normalization_span: float) -> float:
+    drop = max(0.0, float(before) - float(after))
+    if normalization_span <= 0:
+        return 0.0
+    return _clamp_percentage((drop / normalization_span) * 100.0)
+
+
 @dataclass(slots=True)
 class DecisionResult:
     decision: str
@@ -11,29 +22,44 @@ class DecisionResult:
 
 
 class DecisionService:
-    def evaluate_claim(self, ndvi_drop: float, ai_damage_probability: float, damaged_area_percentage: float) -> DecisionResult:
-        severe_signal = ndvi_drop > 30.0 and ai_damage_probability > 0.6
-        partial_signal = 10.0 <= ndvi_drop <= 30.0 or 25.0 <= damaged_area_percentage <= 60.0
+    def evaluate_claim(
+        self,
+        *,
+        ndvi_before: float,
+        ndvi_after: float,
+        ndwi_before: float,
+        ndwi_after: float,
+        evi_before: float,
+        evi_after: float,
+        ai_damage_probability: float,
+        damaged_area_percentage: float,
+    ) -> DecisionResult:
+        ndvi_damage = _index_drop_to_damage(ndvi_before, ndvi_after, normalization_span=0.6)
+        ndwi_damage = _index_drop_to_damage(ndwi_before, ndwi_after, normalization_span=0.5)
+        evi_damage = _index_drop_to_damage(evi_before, evi_after, normalization_span=0.8)
+        ai_damage = _clamp_percentage(ai_damage_probability * 100.0)
+        area_score = _clamp_percentage(damaged_area_percentage)
 
-        if severe_signal:
-            confidence = min(0.99, 0.55 + (ndvi_drop / 100.0) + ai_damage_probability / 3.0)
-            return DecisionResult(
-                decision="Approved",
-                confidence=confidence,
-                rationale="NDVI drop exceeds 30% and AI damage probability is above 0.60.",
-            )
-
-        if partial_signal:
-            confidence = min(0.9, 0.45 + (max(ndvi_drop, damaged_area_percentage) / 200.0) + ai_damage_probability / 5.0)
-            return DecisionResult(
-                decision="Partial Damage",
-                confidence=confidence,
-                rationale="Moderate NDVI loss or moderate damaged area detected, suitable for partial settlement.",
-            )
-
-        confidence = max(0.5, 0.8 - (ndvi_drop / 100.0) + (1.0 - ai_damage_probability) / 5.0)
-        return DecisionResult(
-            decision="Rejected",
-            confidence=confidence,
-            rationale="Damage indicators remain below claim settlement thresholds.",
+        # Multi-signal fusion with explicit weights across spectral indices + AI + area severity.
+        fused_damage = (
+            (0.35 * ndvi_damage)
+            + (0.15 * ndwi_damage)
+            + (0.15 * evi_damage)
+            + (0.20 * ai_damage)
+            + (0.15 * area_score)
         )
+
+        if fused_damage >= 65.0:
+            decision = "Approved"
+        elif fused_damage >= 40.0:
+            decision = "Partial Damage"
+        else:
+            decision = "Rejected"
+
+        confidence = min(0.99, max(0.5, 0.5 + (abs(fused_damage - 50.0) / 100.0)))
+        rationale = (
+            "Fused evidence score from NDVI/NDWI/EVI drops, AI damage probability, and estimated damaged area. "
+            f"Score={fused_damage:.1f} (NDVI={ndvi_damage:.1f}, NDWI={ndwi_damage:.1f}, EVI={evi_damage:.1f}, "
+            f"AI={ai_damage:.1f}, Area={area_score:.1f})."
+        )
+        return DecisionResult(decision=decision, confidence=confidence, rationale=rationale)

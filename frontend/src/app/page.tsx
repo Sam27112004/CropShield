@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { RefreshCw, ShieldCheck, TriangleAlert, Wheat } from 'lucide-react';
+import ErrorBanner from '@/components/ErrorBanner';
 import { useDashboardSummary } from '@/hooks/useApi';
 
-function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType }) {
+function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType; loading?: boolean }) {
   const Icon = props.icon;
   return (
     <motion.div
@@ -19,7 +20,11 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
           <Icon size={18} />
         </span>
       </div>
-      <p className="text-3xl font-bold text-foreground-main mb-1">{props.value}</p>
+      {props.loading ? (
+        <div className="mb-2 h-9 w-28 animate-pulse rounded-lg bg-primary/15" />
+      ) : (
+        <p className="text-3xl font-bold text-foreground-main mb-1">{props.value}</p>
+      )}
       <p className="text-xs text-foreground-muted">{props.subtitle}</p>
     </motion.div>
   );
@@ -54,36 +59,36 @@ export default function HomePage() {
         </div>
       </header>
 
-      {error ? (
-        <div className="glass rounded-xl p-4 border border-red-300/60 text-red-700 text-sm">
-          Backend summary is unavailable: {error}
-        </div>
-      ) : null}
+      {error ? <ErrorBanner message={`Backend summary is unavailable: ${error}`} onRetry={refetch} /> : null}
 
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           title="Total Claims"
-          value={loading ? '...' : String(totalClaims)}
+          value={String(totalClaims)}
           subtitle="All farmer submissions"
           icon={Wheat}
+          loading={loading}
         />
         <MetricCard
           title="Admin Approved"
-          value={loading ? '...' : String(approved)}
+          value={String(approved)}
           subtitle="Supervised and finalized claims"
           icon={ShieldCheck}
+          loading={loading}
         />
         <MetricCard
           title="Avg Possible Damage"
-          value={loading ? '...' : `${avgDamage.toFixed(1)}%`}
+          value={`${avgDamage.toFixed(1)}%`}
           subtitle="Model-estimated crop impact"
           icon={TriangleAlert}
+          loading={loading}
         />
         <MetricCard
           title="Avg Decision Confidence"
-          value={loading ? '...' : `${(avgConfidence * 100).toFixed(1)}%`}
+          value={`${(avgConfidence * 100).toFixed(1)}%`}
           subtitle="Internal AI+rules confidence"
           icon={ShieldCheck}
+          loading={loading}
         />
       </section>
 

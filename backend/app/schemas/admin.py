@@ -102,8 +102,3 @@ class AdminBulkReviewRequest(BaseModel):
 
 class AdminBulkReviewResponse(BaseModel):
     updated_claim_ids: list[int]
-
-
-class AdminCacheInvalidateResponse(BaseModel):
-    status: str
-    cache_key: str

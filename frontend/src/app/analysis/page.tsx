@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { Activity, ExternalLink, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
+import ErrorBanner from '@/components/ErrorBanner';
 import { useClaims, useDashboardSummary } from '@/hooks/useApi';
 
-function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType }) {
+function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType; loading?: boolean }) {
   const Icon = props.icon;
   return (
     <div className="glass rounded-2xl p-5 md:p-6 border border-primary/10">
@@ -14,7 +15,11 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
           <Icon size={18} />
         </span>
       </div>
-      <p className="text-3xl font-bold text-foreground-main mb-1">{props.value}</p>
+      {props.loading ? (
+        <div className="mb-2 h-9 w-28 animate-pulse rounded-lg bg-primary/15" />
+      ) : (
+        <p className="text-3xl font-bold text-foreground-main mb-1">{props.value}</p>
+      )}
       <p className="text-xs text-foreground-muted">{props.subtitle}</p>
     </div>
   );
@@ -70,37 +75,43 @@ export default function AnalysisPage() {
       </header>
 
       {summaryQuery.error || claimsQuery.error ? (
-        <div className="glass rounded-xl p-4 border border-red-300/60 text-red-700 text-sm">
-          {summaryQuery.error ? `Summary error: ${summaryQuery.error}` : null}
-          {summaryQuery.error && claimsQuery.error ? ' | ' : null}
-          {claimsQuery.error ? `Claims error: ${claimsQuery.error}` : null}
-        </div>
+        <ErrorBanner
+          message={`${summaryQuery.error ? `Summary error: ${summaryQuery.error}` : ''}${summaryQuery.error && claimsQuery.error ? ' | ' : ''}${claimsQuery.error ? `Claims error: ${claimsQuery.error}` : ''}`}
+          onRetry={() => {
+            summaryQuery.refetch();
+            claimsQuery.refetch();
+          }}
+        />
       ) : null}
 
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           title="Total Claims"
-          value={loading ? '...' : String(totalClaims)}
+          value={String(totalClaims)}
           subtitle="Tracked claims in the system"
           icon={Activity}
+          loading={loading}
         />
         <MetricCard
           title="Avg Damage"
-          value={loading ? '...' : `${avgDamage.toFixed(1)}%`}
+          value={`${avgDamage.toFixed(1)}%`}
           subtitle="Average model-estimated crop impact"
           icon={TriangleAlert}
+          loading={loading}
         />
         <MetricCard
           title="Approved Claims"
-          value={loading ? '...' : String(approvedClaims)}
+          value={String(approvedClaims)}
           subtitle="Admin-approved outcomes"
           icon={ShieldCheck}
+          loading={loading}
         />
         <MetricCard
           title="Avg Confidence"
-          value={loading ? '...' : `${(avgConfidence * 100).toFixed(1)}%`}
+          value={`${(avgConfidence * 100).toFixed(1)}%`}
           subtitle="AI + rules confidence trend"
           icon={ShieldCheck}
+          loading={loading}
         />
       </section>
 

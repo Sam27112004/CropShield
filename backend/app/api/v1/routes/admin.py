@@ -3,13 +3,11 @@ from __future__ import annotations
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query, Response
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import db_session_dep, redis_dep
+from app.api.deps import db_session_dep
 from app.core.security import require_admin
 from app.schemas.admin import (
-    AdminCacheInvalidateResponse,
     AdminBulkReviewRequest,
     AdminBulkReviewResponse,
     AdminClaimFullResponse,
@@ -22,7 +20,6 @@ from app.schemas.admin import (
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.report import ReportMetadataResponse
 from app.services.admin import AdminService, classify_risk
-from app.services.dashboard import DashboardService
 from app.services.farms import FarmService
 from app.services.reports import ReportService
 from app.api.v1.routes.claims import _to_analysis_schema
@@ -202,14 +199,3 @@ async def get_admin_report(
         mime_type=report.mime_type,
         generated_at=report.generated_at,
     )
-
-
-@router.post("/cache/invalidate", response_model=AdminCacheInvalidateResponse)
-async def invalidate_dashboard_cache(
-    session: AsyncSession = Depends(db_session_dep),
-    redis_client: Redis = Depends(redis_dep),
-    _: AuthenticatedUser = Depends(require_admin),
-) -> AdminCacheInvalidateResponse:
-    dashboard = DashboardService(session, redis_client=redis_client)
-    await dashboard.invalidate_summary_cache()
-    return AdminCacheInvalidateResponse(status="ok", cache_key=DashboardService.CACHE_KEY)

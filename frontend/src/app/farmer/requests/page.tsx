@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, ChevronLeft, ExternalLink, Loader2, Lock, MapPinned, RefreshCw, Satellite, ShieldCheck, XCircle } from 'lucide-react';
+import ErrorBanner from '@/components/ErrorBanner';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
 import { useClaims } from '@/hooks/useApi';
 import { ApiError, analyzeClaim, createClaim, createFarmProfile, getAnalysis, getFarmOptions, submitFarmerNotes, waitForJobCompletion } from '@/lib/api';
@@ -86,6 +87,14 @@ export default function FarmerRequestsPage() {
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{
+    landFarmerName?: string;
+    manualFarmerName?: string;
+    manualArea?: string;
+    manualLatitude?: string;
+    manualLongitude?: string;
+    analysisDateRange?: string;
+  }>({});
   const [farm, setFarm] = useState<FarmProfile | null>(null);
   const [farmConfirmed, setFarmConfirmed] = useState(false);
   const [jobInfo, setJobInfo] = useState<string>('Waiting...');
@@ -267,8 +276,9 @@ export default function FarmerRequestsPage() {
 
   const submitLandLookup = async () => {
     setError(null);
+    setFormErrors((prev) => ({ ...prev, landFarmerName: undefined }));
     if (!landForm.farmer_name.trim()) {
-      setError('Farmer name is required.');
+      setFormErrors((prev) => ({ ...prev, landFarmerName: 'Farmer name is required.' }));
       return;
     }
     setLoading(true);
@@ -298,24 +308,24 @@ export default function FarmerRequestsPage() {
 
   const continueManualFlow = () => {
     setError(null);
+    const nextErrors: typeof formErrors = {};
     if (!manualForm.farmer_name.trim()) {
-      setError('Farmer name is required.');
-      return;
+      nextErrors.manualFarmerName = 'Farmer name is required.';
     }
     if (manualForm.farm_area_hectares <= 0) {
-      setError('Land area must be greater than 0.');
-      return;
+      nextErrors.manualArea = 'Land area must be greater than 0.';
     }
     if (manualForm.latitude < -90 || manualForm.latitude > 90) {
-      setError('Latitude must be between -90 and 90.');
-      return;
+      nextErrors.manualLatitude = 'Latitude must be between -90 and 90.';
     }
     if (manualForm.longitude < -180 || manualForm.longitude > 180) {
-      setError('Longitude must be between -180 and 180.');
-      return;
+      nextErrors.manualLongitude = 'Longitude must be between -180 and 180.';
     }
     if (claimForm.analysis_start_date > claimForm.analysis_end_date) {
-      setError('Analysis start date must be on or before analysis end date.');
+      nextErrors.analysisDateRange = 'Analysis start date must be on or before analysis end date.';
+    }
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
     setStep(3);
@@ -499,6 +509,10 @@ export default function FarmerRequestsPage() {
 
       {error ? (
         <div className="glass rounded-xl p-4 border border-red-300/60 text-red-700 text-sm">{error}</div>
+      ) : null}
+
+      {claimsQuery.error ? (
+        <ErrorBanner message={`Unable to load requests: ${claimsQuery.error}`} onRetry={claimsQuery.refetch} />
       ) : null}
 
       {view === 'status' ? (
@@ -743,9 +757,13 @@ export default function FarmerRequestsPage() {
                       <input
                         className={numberInputClass}
                         value={landForm.farmer_name}
-                        onChange={(e) => setLandForm((prev) => ({ ...prev, farmer_name: e.target.value }))}
+                        onChange={(e) => {
+                          setLandForm((prev) => ({ ...prev, farmer_name: e.target.value }));
+                          setFormErrors((prev) => ({ ...prev, landFarmerName: undefined }));
+                        }}
                         placeholder="e.g. Ravi Patil"
                       />
+                      {formErrors.landFarmerName ? <p className="text-xs text-red-700">{formErrors.landFarmerName}</p> : null}
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
                       State
@@ -849,9 +867,13 @@ export default function FarmerRequestsPage() {
                       <input
                         className={numberInputClass}
                         value={manualForm.farmer_name}
-                        onChange={(e) => setManualForm((prev) => ({ ...prev, farmer_name: e.target.value }))}
+                        onChange={(e) => {
+                          setManualForm((prev) => ({ ...prev, farmer_name: e.target.value }));
+                          setFormErrors((prev) => ({ ...prev, manualFarmerName: undefined }));
+                        }}
                         placeholder="e.g. Ravi Patil"
                       />
+                      {formErrors.manualFarmerName ? <p className="text-xs text-red-700">{formErrors.manualFarmerName}</p> : null}
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
                       Land Area (hectares)
@@ -860,8 +882,12 @@ export default function FarmerRequestsPage() {
                         step="0.001"
                         className={numberInputClass}
                         value={manualForm.farm_area_hectares}
-                        onChange={(e) => setManualForm((prev) => ({ ...prev, farm_area_hectares: Number(e.target.value) }))}
+                        onChange={(e) => {
+                          setManualForm((prev) => ({ ...prev, farm_area_hectares: Number(e.target.value) }));
+                          setFormErrors((prev) => ({ ...prev, manualArea: undefined }));
+                        }}
                       />
+                      {formErrors.manualArea ? <p className="text-xs text-red-700">{formErrors.manualArea}</p> : null}
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
                       Latitude
@@ -870,8 +896,12 @@ export default function FarmerRequestsPage() {
                         step="0.000001"
                         className={numberInputClass}
                         value={manualForm.latitude}
-                        onChange={(e) => setManualForm((prev) => ({ ...prev, latitude: Number(e.target.value) }))}
+                        onChange={(e) => {
+                          setManualForm((prev) => ({ ...prev, latitude: Number(e.target.value) }));
+                          setFormErrors((prev) => ({ ...prev, manualLatitude: undefined }));
+                        }}
                       />
+                      {formErrors.manualLatitude ? <p className="text-xs text-red-700">{formErrors.manualLatitude}</p> : null}
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
                       Longitude
@@ -880,8 +910,12 @@ export default function FarmerRequestsPage() {
                         step="0.000001"
                         className={numberInputClass}
                         value={manualForm.longitude}
-                        onChange={(e) => setManualForm((prev) => ({ ...prev, longitude: Number(e.target.value) }))}
+                        onChange={(e) => {
+                          setManualForm((prev) => ({ ...prev, longitude: Number(e.target.value) }));
+                          setFormErrors((prev) => ({ ...prev, manualLongitude: undefined }));
+                        }}
                       />
+                      {formErrors.manualLongitude ? <p className="text-xs text-red-700">{formErrors.manualLongitude}</p> : null}
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
                       Crop Type
@@ -913,7 +947,10 @@ export default function FarmerRequestsPage() {
                         type="date"
                         className={numberInputClass}
                         value={claimForm.analysis_start_date}
-                        onChange={(e) => setClaimForm((prev) => ({ ...prev, analysis_start_date: e.target.value }))}
+                        onChange={(e) => {
+                          setClaimForm((prev) => ({ ...prev, analysis_start_date: e.target.value }));
+                          setFormErrors((prev) => ({ ...prev, analysisDateRange: undefined }));
+                        }}
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-sm">
@@ -922,9 +959,13 @@ export default function FarmerRequestsPage() {
                         type="date"
                         className={numberInputClass}
                         value={claimForm.analysis_end_date}
-                        onChange={(e) => setClaimForm((prev) => ({ ...prev, analysis_end_date: e.target.value }))}
+                        onChange={(e) => {
+                          setClaimForm((prev) => ({ ...prev, analysis_end_date: e.target.value }));
+                          setFormErrors((prev) => ({ ...prev, analysisDateRange: undefined }));
+                        }}
                       />
                     </label>
+                    {formErrors.analysisDateRange ? <p className="text-xs text-red-700 md:col-span-2">{formErrors.analysisDateRange}</p> : null}
                   </div>
                   <div className="mt-5">
                     <button type="button" className="btn-premium" disabled={loading} onClick={continueManualFlow}>

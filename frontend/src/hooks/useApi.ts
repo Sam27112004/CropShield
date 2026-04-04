@@ -13,6 +13,7 @@ import {
   getFarms,
   getJob,
   getMarketCommodities,
+  getMandiData,
   getTrendingCommodities,
   getWeatherAlerts,
   getWeatherCurrent,
@@ -29,6 +30,7 @@ import type {
   FarmsListResponse,
   JobStatusResponse,
   CommoditiesResponse,
+  MandiDataResponse,
   TrendingCommoditiesResponse,
   WeatherAlerts,
   WeatherCurrent,
@@ -112,6 +114,10 @@ export function useMarketCommodities() {
 
 export function useTrendingCommodities() {
   return useQuery<TrendingCommoditiesResponse>(getTrendingCommodities);
+}
+
+export function useMandiData() {
+  return useQuery<MandiDataResponse>(getMandiData);
 }
 
 export function useClaims(params?: { limit?: number; offset?: number }) {

@@ -8,9 +8,12 @@ import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 import {
   useDashboardSummary,
+  useMandiData,
   useMarketCommodities,
   useTrendingCommodities,
+  useWeatherAlerts,
   useWeatherCurrent,
+  useWeatherForecast,
 } from '@/hooks/useApi';
 
 function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType; loading?: boolean }) {
@@ -40,8 +43,11 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
 export default function HomePage() {
   const { data, loading, error, refetch } = useDashboardSummary();
   const weatherQuery = useWeatherCurrent('Pune');
+  const forecastQuery = useWeatherForecast('Pune', 3);
+  const alertsQuery = useWeatherAlerts('Pune');
   const commoditiesQuery = useMarketCommodities();
   const trendingQuery = useTrendingCommodities();
+  const mandiQuery = useMandiData();
   const [advisoryMessage, setAdvisoryMessage] = useState('What should I monitor for heat stress this week?');
   const [advisoryReply, setAdvisoryReply] = useState<string | null>(null);
   const [advisoryError, setAdvisoryError] = useState<string | null>(null);
@@ -54,6 +60,7 @@ export default function HomePage() {
 
   const topCommodity = commoditiesQuery.data?.items?.[0];
   const topTrending = trendingQuery.data?.items?.[0];
+  const topMandi = mandiQuery.data?.items?.[0];
 
   async function submitAdvisory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,10 +96,31 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={refetch}
+            onClick={() => {
+              refetch();
+              weatherQuery.refetch();
+              forecastQuery.refetch();
+              alertsQuery.refetch();
+              commoditiesQuery.refetch();
+              trendingQuery.refetch();
+              mandiQuery.refetch();
+            }}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-foreground-main text-sm font-semibold hover:bg-primary/5"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw
+              size={14}
+              className={
+                loading ||
+                weatherQuery.loading ||
+                forecastQuery.loading ||
+                alertsQuery.loading ||
+                commoditiesQuery.loading ||
+                trendingQuery.loading ||
+                mandiQuery.loading
+                  ? 'animate-spin'
+                  : ''
+              }
+            />
             Refresh
           </button>
           <Link href="/farmer/requests" className="btn-premium">Start New Claim</Link>
@@ -151,6 +179,20 @@ export default function HomePage() {
               <p className="text-foreground-muted">Humidity {weatherQuery.data.humidity_percent}% • Wind {weatherQuery.data.wind_kph.toFixed(1)} kph</p>
             </div>
           ) : null}
+          {forecastQuery.data?.days?.length ? (
+            <div className="mt-3 space-y-1 text-xs text-foreground-muted">
+              {forecastQuery.data.days.map((day) => (
+                <p key={day.date}>
+                  {day.date}: {day.min_temp_c.toFixed(1)}°C - {day.max_temp_c.toFixed(1)}°C ({day.condition})
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {alertsQuery.data?.alerts?.length ? (
+            <p className="mt-3 text-xs text-amber-700">
+              Alert: {alertsQuery.data.alerts[0].title} ({alertsQuery.data.alerts[0].severity})
+            </p>
+          ) : null}
         </div>
 
         <div className="glass rounded-2xl p-5 border border-primary/10">
@@ -167,6 +209,11 @@ export default function HomePage() {
           {topTrending ? (
             <p className="mt-2 text-sm text-foreground-muted">
               Trending: <span className="font-semibold text-foreground-main">{topTrending.commodity}</span> ({topTrending.change_percent.toFixed(1)}%)
+            </p>
+          ) : null}
+          {topMandi ? (
+            <p className="mt-2 text-xs text-foreground-muted">
+              Mandi: {topMandi.mandi} - {topMandi.commodity} modal {topMandi.modal_price.toFixed(0)}
             </p>
           ) : null}
         </div>

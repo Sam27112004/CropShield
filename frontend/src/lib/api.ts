@@ -381,3 +381,27 @@ export async function bulkReviewAdminClaims(payload: AdminBulkReviewRequest): Pr
 export function getAdminReportDownloadUrl(claimId: number | string): string {
   return `${BASE_URL}${API_PREFIX}/admin/claims/${claimId}/report?download=true`;
 }
+
+export async function downloadAdminReportPdf(claimId: number | string): Promise<void> {
+  const url = getAdminReportDownloadUrl(claimId);
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  if (!res.ok) {
+    throw new ApiError(res.status, `API error ${res.status}: ${res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = `cropshield-admin-claim-${claimId}-report.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}

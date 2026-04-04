@@ -1,14 +1,13 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Download, RefreshCw, Send } from 'lucide-react';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
 import {
   bulkReviewAdminClaims,
+  downloadAdminReportPdf,
   getAdminClaimFull,
-  getAdminReportDownloadUrl,
   getAnalysisArtifacts,
   reviewAdminClaim,
 } from '@/lib/api';
@@ -97,7 +96,13 @@ export default function AdminClaimsPage() {
   const hasNext = offset + claims.length < totalCount;
 
   useEffect(() => {
-    setSelectedIds((prev) => prev.filter((id) => claims.some((item) => item.claim_id === id)));
+    setSelectedIds((prev) => {
+      const next = prev.filter((id) => claims.some((item) => item.claim_id === id));
+      if (next.length === prev.length && next.every((id, index) => id === prev[index])) {
+        return prev;
+      }
+      return next;
+    });
   }, [claims]);
 
   const availableCropTypes = useMemo(() => {
@@ -498,8 +503,16 @@ export default function AdminClaimsPage() {
                                     }
                                   />
                                   <a
-                                    href={getAdminReportDownloadUrl(claim.claim_id)}
+                                    href="#"
                                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5 no-underline"
+                                    onClick={async (event) => {
+                                      event.preventDefault();
+                                      try {
+                                        await downloadAdminReportPdf(claim.claim_id);
+                                      } catch (err) {
+                                        setMessage(`Report download failed for #${claim.claim_id}: ${String(err)}`);
+                                      }
+                                    }}
                                   >
                                     <Download size={14} />
                                     Report

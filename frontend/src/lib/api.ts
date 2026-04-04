@@ -2,6 +2,9 @@ import type {
   AuthLoginRequest,
   AuthTokenResponse,
   AdminClaimsResponse,
+  AdminClaimFullResponse,
+  AdminBulkReviewRequest,
+  AdminBulkReviewResponse,
   AdminReviewRequest,
   AnalysisArtifacts,
   AnalysisResult,
@@ -335,12 +338,27 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 export async function getAdminClaims(params?: {
   limit?: number;
   offset?: number;
+  status?: string;
   admin_status?: string;
+  crop_type?: string;
+  damage_date_from?: string;
+  damage_date_to?: string;
+  search?: string;
 }): Promise<AdminClaimsResponse> {
   const limit = params?.limit ?? 25;
   const offset = params?.offset ?? 0;
-  const status = params?.admin_status ? `&admin_status=${encodeURIComponent(params.admin_status)}` : '';
-  return apiFetch<AdminClaimsResponse>(`/admin/claims?limit=${limit}&offset=${offset}${status}`);
+  const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (params?.status) qs.set('status', params.status);
+  if (params?.admin_status) qs.set('admin_status', params.admin_status);
+  if (params?.crop_type) qs.set('crop_type', params.crop_type);
+  if (params?.damage_date_from) qs.set('damage_date_from', params.damage_date_from);
+  if (params?.damage_date_to) qs.set('damage_date_to', params.damage_date_to);
+  if (params?.search) qs.set('search', params.search);
+  return apiFetch<AdminClaimsResponse>(`/admin/claims?${qs.toString()}`);
+}
+
+export async function getAdminClaimFull(claimId: number | string): Promise<AdminClaimFullResponse> {
+  return apiFetch<AdminClaimFullResponse>(`/admin/claims/${claimId}/full`);
 }
 
 export async function reviewAdminClaim(
@@ -351,4 +369,15 @@ export async function reviewAdminClaim(
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export async function bulkReviewAdminClaims(payload: AdminBulkReviewRequest): Promise<AdminBulkReviewResponse> {
+  return apiFetch<AdminBulkReviewResponse>('/admin/claims/bulk-review', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getAdminReportDownloadUrl(claimId: number | string): string {
+  return `${BASE_URL}${API_PREFIX}/admin/claims/${claimId}/report?download=true`;
 }

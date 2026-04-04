@@ -282,6 +282,7 @@ export interface AdminClaimsResponse {
   items: AdminClaim[];
   limit: number;
   offset: number;
+  total_count: number;
 }
 
 export interface AdminReviewRequest {
@@ -289,4 +290,35 @@ export interface AdminReviewRequest {
   reviewed_by: string;
   admin_notes?: string;
   recommended_insurance_amount?: number;
+}
+
+export interface ClaimAuditLog {
+  id: number;
+  claim_id: number;
+  actor: string;
+  action: string;
+  old_status?: string | null;
+  new_status?: string | null;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface AdminClaimFullResponse {
+  claim: AdminClaim;
+  admin_notes?: string | null;
+  farmer_notes?: string | null;
+  latest_analysis: AnalysisResult['analysis'];
+  audit_logs: ClaimAuditLog[];
+}
+
+export interface AdminBulkReviewRequest {
+  claim_ids: number[];
+  admin_status: 'pending_review' | 'approved' | 'rejected' | 'needs_more_info';
+  reviewed_by: string;
+  admin_notes?: string;
+  recommended_insurance_amount?: number;
+}
+
+export interface AdminBulkReviewResponse {
+  updated_claim_ids: number[];
 }

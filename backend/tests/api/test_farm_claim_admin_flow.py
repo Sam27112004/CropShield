@@ -93,6 +93,7 @@ async def test_admin_review_endpoint_updates_claim(client, admin_headers) -> Non
             "admin_notes": "Satellite and extent verified.",
             "recommended_insurance_amount": 14500,
         },
+        headers=admin_headers,
     )
     assert review_resp.status_code == 200
     reviewed = review_resp.json()

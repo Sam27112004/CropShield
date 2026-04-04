@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy import Select, select
+from datetime import date
+
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -78,8 +80,28 @@ class ClaimRepository:
         *,
         limit: int,
         offset: int,
+        status: str | None = None,
         admin_status: str | None = None,
-    ) -> list[Claim]:
+        crop_type: str | None = None,
+        damage_date_from: date | None = None,
+        damage_date_to: date | None = None,
+        search: str | None = None,
+    ) -> tuple[list[Claim], int]:
+        filters = []
+        if status:
+            filters.append(Claim.status == status)
+        if admin_status:
+            filters.append(Claim.admin_status == admin_status)
+        if crop_type:
+            filters.append(func.lower(Claim.crop_type) == crop_type.strip().lower())
+        if damage_date_from is not None:
+            filters.append(Claim.damage_date >= damage_date_from)
+        if damage_date_to is not None:
+            filters.append(Claim.damage_date <= damage_date_to)
+        if search:
+            pattern = f"%{search.strip()}%"
+            filters.append(or_(Claim.farmer_name.ilike(pattern), Claim.crop_type.ilike(pattern)))
+
         stmt: Select[tuple[Claim]] = (
             select(Claim)
             .options(
@@ -87,11 +109,31 @@ class ClaimRepository:
                 selectinload(Claim.analysis_runs).selectinload(AnalysisRun.metrics),
                 selectinload(Claim.analysis_runs).selectinload(AnalysisRun.ai_prediction),
             )
-            .order_by(Claim.created_at.desc())
+            .order_by(Claim.updated_at.desc(), Claim.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
-        if admin_status:
-            stmt = stmt.where(Claim.admin_status == admin_status)
+        count_stmt = select(func.count()).select_from(Claim)
+        if filters:
+            stmt = stmt.where(*filters)
+            count_stmt = count_stmt.where(*filters)
+
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        count_result = await self.session.execute(count_stmt)
+        total_count = int(count_result.scalar_one())
+        return list(result.scalars().all()), total_count
+
+    async def get_for_admin_full(self, claim_id: int) -> Claim | None:
+        stmt = (
+            select(Claim)
+            .where(Claim.id == claim_id)
+            .options(
+                selectinload(Claim.farm_profile),
+                selectinload(Claim.analysis_runs).selectinload(AnalysisRun.metrics),
+                selectinload(Claim.analysis_runs).selectinload(AnalysisRun.ai_prediction),
+                selectinload(Claim.analysis_runs).selectinload(AnalysisRun.decisions),
+                selectinload(Claim.audit_logs),
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()

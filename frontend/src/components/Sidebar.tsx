@@ -22,9 +22,9 @@ const farmerNavItems = [
 export const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { isOpen, close } = useSidebar();
-  const activeNavItems = pathname.startsWith('/farmer') ? farmerNavItems : navItems;
+  const activeNavItems = user?.role === 'farmer' ? farmerNavItems : navItems.filter((item) => item.href !== '/farmer/requests');
 
   const handleLogout = () => {
     logout();

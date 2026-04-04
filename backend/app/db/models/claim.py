@@ -10,6 +10,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.db.models.analysis_run import AnalysisRun
+    from app.db.models.claim_audit_log import ClaimAuditLog
     from app.db.models.decision import Decision
     from app.db.models.farmer_user import FarmerUser
     from app.db.models.farm_profile import FarmProfile
@@ -53,3 +54,8 @@ class Claim(Base):
     )
     decisions: Mapped[list["Decision"]] = relationship(back_populates="claim", cascade="all, delete-orphan")
     reports: Mapped[list["Report"]] = relationship(back_populates="claim", cascade="all, delete-orphan")
+    audit_logs: Mapped[list["ClaimAuditLog"]] = relationship(
+        back_populates="claim",
+        cascade="all, delete-orphan",
+        order_by="ClaimAuditLog.created_at.desc()",
+    )

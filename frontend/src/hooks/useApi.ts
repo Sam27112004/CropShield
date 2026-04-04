@@ -127,6 +127,15 @@ export function useFarm(farmId: string | number, enabled = true) {
   );
 }
 
-export function useAdminClaims(params?: { limit?: number; offset?: number; admin_status?: string }) {
+export function useAdminClaims(params?: {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  admin_status?: string;
+  crop_type?: string;
+  damage_date_from?: string;
+  damage_date_to?: string;
+  search?: string;
+}) {
   return useQuery<AdminClaimsResponse>(() => getAdminClaims(params));
 }

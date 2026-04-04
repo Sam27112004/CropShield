@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     enable_market_module: bool = True
     enable_advisory_module: bool = True
     enable_forum_module: bool = True
+    enable_disease_module: bool = True
 
     # Domain defaults preserved from the Streamlit prototype.
     default_gap_before_days: int = 5

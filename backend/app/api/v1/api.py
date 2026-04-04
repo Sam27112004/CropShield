@@ -13,6 +13,7 @@ from app.api.v1.routes.jobs import router as jobs_router
 from app.api.v1.routes.market import router as market_router
 from app.api.v1.routes.weather import router as weather_router
 from app.api.v1.routes.advisory import router as advisory_router
+from app.api.v1.routes.disease import router as disease_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -26,3 +27,4 @@ api_router.include_router(weather_router)
 api_router.include_router(market_router)
 api_router.include_router(advisory_router)
 api_router.include_router(forum_router)
+api_router.include_router(disease_router)

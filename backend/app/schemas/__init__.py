@@ -15,6 +15,7 @@ from app.schemas.farm import FarmLookupRequest, FarmProfileListResponse, FarmPro
 from app.schemas.health import HealthResponse, ReadinessResponse
 from app.schemas.job import JobStatusResponse
 from app.schemas.report import ReportCreateRequest, ReportMetadataResponse
+from app.schemas.disease import DiseaseDetectRequest, DiseaseDetectResponse
 from app.schemas.weather import WeatherAlertsResponse, WeatherCurrentResponse, WeatherForecastResponse
 from app.schemas.market import CommodityListResponse, MandiDataResponse, TrendingCommoditiesResponse
 from app.schemas.advisory import AdvisoryChatRequest, AdvisoryChatResponse
@@ -57,6 +58,8 @@ __all__ = [
     "JobStatusResponse",
     "ReportCreateRequest",
     "ReportMetadataResponse",
+    "DiseaseDetectRequest",
+    "DiseaseDetectResponse",
     "WeatherAlertsResponse",
     "WeatherCurrentResponse",
     "WeatherForecastResponse",

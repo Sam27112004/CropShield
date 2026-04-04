@@ -69,8 +69,24 @@ async def test_new_phase2_routes_require_auth(client) -> None:
     market_resp = await client.get("/api/v1/market/commodities")
     advisory_resp = await client.post("/api/v1/advisory/chat", json={"message": "x", "language": "en"})
     forum_resp = await client.get("/api/v1/forum/posts")
+    disease_resp = await client.post("/api/v1/disease/detect", json={"image_name": "leaf.jpg"})
 
     assert weather_resp.status_code == 401
     assert market_resp.status_code == 401
     assert advisory_resp.status_code == 401
     assert forum_resp.status_code == 401
+    assert disease_resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_disease_detect_route_returns_prediction(client, admin_headers) -> None:
+    response = await client.post(
+        "/api/v1/disease/detect",
+        json={"image_name": "tomato_leaf_spot.jpg", "crop_type": "tomato"},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["predicted_disease"]
+    assert 0 <= body["confidence"] <= 1
+    assert isinstance(body["recommendation"], str)

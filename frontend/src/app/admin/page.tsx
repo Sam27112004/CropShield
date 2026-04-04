@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { RefreshCw, Send } from 'lucide-react';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
@@ -115,7 +116,7 @@ export default function AdminClaimsPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-4 gap-3 mt-4">
+            <div className="grid md:grid-cols-5 gap-3 mt-4">
               <select
                 className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
                 value={state.admin_status}
@@ -153,6 +154,12 @@ export default function AdminClaimsPage() {
                   }))
                 }
               />
+              <Link
+                href={`/analysis/${claim.claim_id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+              >
+                Analyse
+              </Link>
               <button
                 type="button"
                 className="btn-premium inline-flex items-center justify-center gap-2"

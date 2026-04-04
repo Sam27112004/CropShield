@@ -1,16 +1,76 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Bell, Search, User, Grid, Menu } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
 
+interface SearchItem {
+  label: string;
+  href: string;
+}
+
+const ADMIN_SEARCH_ITEMS: SearchItem[] = [
+  { label: 'Dashboard', href: '/' },
+  { label: 'Analysis', href: '/analysis' },
+  { label: 'Claims', href: '/claims' },
+  { label: 'Weather', href: '/weather' },
+  { label: 'Market', href: '/market' },
+  { label: 'Financial', href: '/financial' },
+  { label: 'Advisory', href: '/advisory' },
+  { label: 'Chatbot', href: '/chatbot' },
+  { label: 'Multilingual Chatbot', href: '/multilingual-chatbot' },
+  { label: 'Smart Advisor', href: '/smart-advisor' },
+  { label: 'Crop Predictor', href: '/crop-predictor' },
+  { label: 'Disease', href: '/disease' },
+  { label: 'Forum', href: '/forum' },
+  { label: 'Admin', href: '/admin' },
+  { label: 'Settings', href: '/settings' },
+];
+
+const FARMER_SEARCH_ITEMS: SearchItem[] = [
+  { label: 'Farmer Requests', href: '/farmer/requests' },
+  { label: 'Weather', href: '/weather' },
+  { label: 'Market', href: '/market' },
+  { label: 'Financial', href: '/financial' },
+  { label: 'Advisory', href: '/advisory' },
+  { label: 'Chatbot', href: '/chatbot' },
+  { label: 'Multilingual Chatbot', href: '/multilingual-chatbot' },
+  { label: 'Smart Advisor', href: '/smart-advisor' },
+  { label: 'Crop Predictor', href: '/crop-predictor' },
+  { label: 'Disease', href: '/disease' },
+  { label: 'Forum', href: '/forum' },
+  { label: 'Settings', href: '/settings' },
+];
+
 export const Header = () => {
+  const router = useRouter();
+  const pathname = usePathname();
   const { toggle } = useSidebar();
   const { user } = useAuth();
+  const [searchText, setSearchText] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const name = user?.name ?? 'User';
   const roleLabel = user?.role === 'farmer' ? 'Farmer' : 'Claims Auditor';
+  const searchItems = user?.role === 'farmer' ? FARMER_SEARCH_ITEMS : ADMIN_SEARCH_ITEMS;
+
+  const filteredItems = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) return searchItems.slice(0, 6);
+    return searchItems
+      .filter((item) => item.label.toLowerCase().includes(query) || item.href.toLowerCase().includes(query))
+      .slice(0, 6);
+  }, [searchItems, searchText]);
+
+  const navigateTo = (href: string) => {
+    setSearchOpen(false);
+    setSearchText('');
+    if (pathname !== href) {
+      router.push(href);
+    }
+  };
 
   return (
     <header className="
@@ -41,13 +101,47 @@ export const Header = () => {
         </span>
 
         {/* Search bar — hidden on small screens */}
-        <div className="hidden md:flex items-center gap-3 bg-white border border-primary/10 px-5 py-2.5 rounded-md w-[300px] xl:w-[400px] transition-all duration-300 focus-within:border-primary/30 focus-within:shadow-[0_4px_15px_rgba(98,111,71,0.1)] shadow-[0_2px_10px_rgba(98,111,71,0.05)]">
-          <Search className="text-foreground-dim shrink-0" size={18} />
-          <input
-            type="text"
-            placeholder="Search claims, farmers, or reports..."
-            className="bg-transparent border-none text-foreground-main w-full outline-none text-sm font-inter"
-          />
+        <div className="hidden md:block relative w-[300px] xl:w-[400px]">
+          <div className="flex items-center gap-3 bg-white border border-primary/10 px-5 py-2.5 rounded-md transition-all duration-300 focus-within:border-primary/30 focus-within:shadow-[0_4px_15px_rgba(98,111,71,0.1)] shadow-[0_2px_10px_rgba(98,111,71,0.05)]">
+            <Search className="text-foreground-dim shrink-0" size={18} />
+            <input
+              type="text"
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              onFocus={() => setSearchOpen(true)}
+              onBlur={() => window.setTimeout(() => setSearchOpen(false), 120)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && filteredItems.length > 0) {
+                  event.preventDefault();
+                  navigateTo(filteredItems[0].href);
+                }
+              }}
+              placeholder="Quick navigate to pages..."
+              className="bg-transparent border-none text-foreground-main w-full outline-none text-sm font-inter"
+            />
+          </div>
+
+          {searchOpen ? (
+            <div className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-xl border border-primary/10 bg-white shadow-[0_10px_30px_rgba(38,48,32,0.12)] p-2 z-[120]">
+              {filteredItems.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-foreground-muted">No matching pages.</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {filteredItems.map((item) => (
+                    <button
+                      key={item.href}
+                      type="button"
+                      onClick={() => navigateTo(item.href)}
+                      className="text-left rounded-lg px-3 py-2 text-sm text-foreground-main hover:bg-primary/5"
+                    >
+                      <span className="font-semibold">{item.label}</span>
+                      <span className="ml-2 text-xs text-foreground-muted">{item.href}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
 

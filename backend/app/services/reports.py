@@ -4,7 +4,6 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from io import BytesIO
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 from redis.asyncio import Redis
@@ -17,9 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.exceptions import NotFoundError
+from app.services.indices import compute_metrics
 from app.repositories.analysis import AnalysisRepository
 from app.repositories.claims import ClaimRepository
 from app.repositories.reports import ReportRepository
+from app.services.satellite import SatelliteService
 from app.utils.domain_helpers import array_to_png_bytes, ensure_dir
 
 
@@ -52,6 +53,22 @@ class ReportService:
             raise NotFoundError(f"No report found for claim '{claim_id}'.")
         return report
 
+    async def render_report_pdf(self, *, claim_id: int, analysis_run_id: int | None = None) -> bytes:
+        claim = await self.claims.get_by_id(claim_id)
+        if claim is None:
+            raise NotFoundError(f"Claim '{claim_id}' was not found.")
+
+        analysis = None
+        if analysis_run_id is not None:
+            analysis = await self.analysis.get_by_id(analysis_run_id)
+        if analysis is None:
+            analysis = await self.analysis.get_latest_for_claim(claim_id)
+        if analysis is None or analysis.metrics is None or analysis.ai_prediction is None:
+            raise NotFoundError(f"Analysis run for claim '{claim_id}' is incomplete.")
+
+        artifacts = await self._load_analysis_artifacts(claim, analysis)
+        return self._build_claim_report_bytes(claim=claim, analysis=analysis, analysis_maps=artifacts)
+
     async def generate_report(self, *, claim_id: int, analysis_run_id: int, analysis_maps: dict[str, object]) -> object:
         claim = await self.claims.get_by_id(claim_id)
         if claim is None:
@@ -60,6 +77,53 @@ class ReportService:
         if analysis is None or analysis.metrics is None or analysis.ai_prediction is None:
             raise NotFoundError(f"Analysis run '{analysis_run_id}' is incomplete.")
 
+        pdf_bytes = self._build_claim_report_bytes(claim=claim, analysis=analysis, analysis_maps=analysis_maps)
+
+        output_dir = self.settings.artifacts_dir / f"claim_{claim_id}"
+        ensure_dir(output_dir)
+        filename = f"analysis_{analysis_run_id}_{datetime.now(tz=timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.pdf"
+        file_path = output_dir / filename
+        file_path.write_bytes(pdf_bytes)
+
+        report = await self.reports.create(
+            claim_id=claim_id,
+            analysis_run_id=analysis_run_id,
+            file_path_or_object_key=str(file_path),
+            mime_type="application/pdf",
+        )
+        await self.session.commit()
+        await self._cache_metadata(report.claim_id, report.id, report.analysis_run_id, report.file_path_or_object_key, report.mime_type)
+        return report
+
+    async def _load_analysis_artifacts(self, claim, analysis) -> dict[str, object]:
+        from app.services.analysis_pipeline import AnalysisPipelineService
+
+        artifacts = None
+        if analysis.id is not None:
+            pipeline = AnalysisPipelineService(self.session, redis_client=self.redis)
+            artifacts = await pipeline.load_analysis_artifacts(analysis.id)
+        if artifacts is None:
+            satellite = SatelliteService(redis_client=self.redis)
+            before_scene, after_scene, _ = await satellite.fetch_satellite_pair(
+                latitude=float(claim.latitude),
+                longitude=float(claim.longitude),
+                damage_date=claim.damage_date.isoformat(),
+                area_hectares=float(claim.farm_area_hectares),
+                gap_before=analysis.gap_before or self.settings.default_gap_before_days,
+                gap_after=analysis.gap_after or self.settings.default_gap_after_days,
+                window_days=analysis.window_days or self.settings.default_window_days,
+                max_cloud_threshold=analysis.max_cloud_threshold or self.settings.default_max_cloud_threshold,
+                upscale_factor=self.settings.default_upscale_factor,
+            )
+            _, maps = compute_metrics(before_scene.bands, after_scene.bands)
+            artifacts = {
+                "before_rgb": before_scene.rgb_image,
+                "after_rgb": after_scene.rgb_image,
+                **maps,
+            }
+        return artifacts
+
+    def _build_claim_report_bytes(self, *, claim, analysis, analysis_maps: dict[str, object]) -> bytes:
         latest_decision = analysis.decisions[-1] if analysis.decisions else None
 
         before_rgb = analysis_maps["before_rgb"]
@@ -88,6 +152,13 @@ class ReportService:
             "evi_before": float(analysis.metrics.evi_before),
             "evi_after": float(analysis.metrics.evi_after),
             "damage_percentage": float(analysis.metrics.damage_percentage),
+            "fused_damage": float(latest_decision.fused_damage) if latest_decision else None,
+            "ndvi_damage": float(latest_decision.ndvi_damage) if latest_decision else None,
+            "ndwi_damage": float(latest_decision.ndwi_damage) if latest_decision else None,
+            "evi_damage": float(latest_decision.evi_damage) if latest_decision else None,
+            "ai_damage": float(latest_decision.ai_damage) if latest_decision else None,
+            "area_score": float(latest_decision.area_score) if latest_decision else None,
+            "decision_confidence": float(latest_decision.confidence) if latest_decision else None,
             "decision": latest_decision.decision if latest_decision else "Pending",
             "decision_rationale": latest_decision.rationale if latest_decision else "Decision pending.",
             "ai_predicted_class": analysis.ai_prediction.predicted_class,
@@ -101,23 +172,7 @@ class ReportService:
             "evi_before_png": _heatmap_to_png(evi_before_map, "EVI Before Damage", "YlGn"),
             "evi_after_png": _heatmap_to_png(evi_after_map, "EVI After Damage", "YlGn"),
         }
-        pdf_bytes = self._generate_claim_report(payload)
-
-        output_dir = self.settings.artifacts_dir / f"claim_{claim_id}"
-        ensure_dir(output_dir)
-        filename = f"analysis_{analysis_run_id}_{datetime.now(tz=timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.pdf"
-        file_path = output_dir / filename
-        file_path.write_bytes(pdf_bytes)
-
-        report = await self.reports.create(
-            claim_id=claim_id,
-            analysis_run_id=analysis_run_id,
-            file_path_or_object_key=str(file_path),
-            mime_type="application/pdf",
-        )
-        await self.session.commit()
-        await self._cache_metadata(report.claim_id, report.id, report.analysis_run_id, report.file_path_or_object_key, report.mime_type)
-        return report
+        return self._generate_claim_report(payload)
 
     async def _cache_metadata(self, claim_id: int, report_id: int, analysis_run_id: int, file_path: str, mime_type: str) -> None:
         if self.redis is None:
@@ -159,8 +214,13 @@ class ReportService:
             ["Location", f"{payload['latitude']:.5f}, {payload['longitude']:.5f}"],
             ["Damage Date", payload["damage_date"]],
             ["Decision", payload["decision"]],
-            ["Damage Percentage", f"{payload['damage_percentage']:.2f}%"],
+            [
+                "Damage Percentage (Fused)",
+                f"{payload['fused_damage']:.2f}%" if payload["fused_damage"] is not None else "N/A",
+            ],
         ]
+        if payload["decision_confidence"] is not None:
+            info_rows.append(["Decision Confidence", f"{payload['decision_confidence'] * 100:.1f}%"])
         table = Table(info_rows, colWidths=[1.8 * inch, 4.6 * inch])
         table.setStyle(
             TableStyle(
@@ -175,14 +235,27 @@ class ReportService:
         story.append(table)
         story.append(Spacer(1, 0.25 * inch))
 
-        stats_text = (
-            f"NDVI before damage: {payload['ndvi_before']:.3f} | NDVI after damage: {payload['ndvi_after']:.3f}<br/>"
-            f"NDWI before damage: {payload['ndwi_before']:.3f} | NDWI after damage: {payload['ndwi_after']:.3f}<br/>"
-            f"EVI before damage: {payload['evi_before']:.3f}  | EVI after damage: {payload['evi_after']:.3f}<br/>"
-            f"AI predicted class: {payload['ai_predicted_class']}<br/>"
-            f"AI damage probability: {payload['ai_damage_probability']:.2f}<br/>"
-            f"Decision rationale: {payload['decision_rationale']}"
-        )
+        stats_lines = [
+            f"NDVI before damage: {payload['ndvi_before']:.3f} | NDVI after damage: {payload['ndvi_after']:.3f}",
+            f"NDWI before damage: {payload['ndwi_before']:.3f} | NDWI after damage: {payload['ndwi_after']:.3f}",
+            f"EVI before damage: {payload['evi_before']:.3f} | EVI after damage: {payload['evi_after']:.3f}",
+            f"AI predicted class: {payload['ai_predicted_class']}",
+            f"AI damage probability: {payload['ai_damage_probability']:.2f}",
+        ]
+        if payload["fused_damage"] is not None:
+            stats_lines.append("Fused model calculation:")
+            stats_lines.append(
+                f"0.35xNDVI({payload['ndvi_damage']:.1f}%) + "
+                f"0.15xNDWI({payload['ndwi_damage']:.1f}%) + "
+                f"0.15xEVI({payload['evi_damage']:.1f}%) + "
+                f"0.20xAI({payload['ai_damage']:.1f}%) + "
+                f"0.15xArea({payload['area_score']:.1f}%) = {payload['fused_damage']:.1f}%"
+            )
+        else:
+            stats_lines.append(f"Legacy NDVI damage estimate: {payload['damage_percentage']:.2f}%")
+        stats_lines.append(f"Decision rationale: {payload['decision_rationale']}")
+
+        stats_text = "<br/>".join(stats_lines)
         story.append(Paragraph(stats_text, styles["BodyText"]))
         story.append(Spacer(1, 0.2 * inch))
 

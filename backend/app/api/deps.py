@@ -5,12 +5,12 @@ from collections.abc import AsyncGenerator
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db_session
+from app.db.session import AsyncSessionLocal
 from app.utils.cache import get_redis_client
 
 
 async def db_session_dep() -> AsyncGenerator[AsyncSession, None]:
-    async for session in get_db_session():
+    async with AsyncSessionLocal() as session:
         yield session
 
 

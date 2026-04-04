@@ -130,6 +130,15 @@ export interface AnalyzeResponse {
   status: JobStatus;
 }
 
+export interface ReportMetadata {
+  id: number;
+  claim_id: number;
+  analysis_run_id: number;
+  file_path_or_object_key: string;
+  mime_type: string;
+  generated_at: string;
+}
+
 export interface AnalysisResult {
   claim_id: number;
   analysis: null | {

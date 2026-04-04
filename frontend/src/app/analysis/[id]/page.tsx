@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
-import { analyzeClaim, getAnalysis, getAnalysisArtifacts, getClaim, waitForJobCompletion } from '@/lib/api';
+import {
+  analyzeClaim,
+  getAnalysis,
+  getAnalysisArtifacts,
+  getClaim,
+  downloadReportPdf as downloadReportPdfFile,
+  waitForJobCompletion,
+} from '@/lib/api';
 import type { AnalysisArtifacts, AnalysisResult, Claim, JobStatusResponse } from '@/types/api';
 
 function ImagePanel({ title, src }: { title: string; src: string }) {
@@ -43,6 +50,7 @@ export default function AnalysisDetailPage() {
   const [job, setJob] = useState<JobStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -95,12 +103,21 @@ export default function AnalysisDetailPage() {
     }
   };
 
-  const metrics = analysis?.analysis?.metrics;
-  const ai = analysis?.analysis?.ai_prediction;
+  const handleDownloadReportPdf = async () => {
+    setReportBusy(true);
+    setError(null);
+    try {
+      await downloadReportPdfFile(claimId);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
   const decision = analysis?.analysis?.decision;
   const farmerAssessment = analysis?.analysis?.farmer_assessment;
   const analysisStatus = analysis?.analysis?.status;
-  const isApprovedByAdmin = claim?.admin_status === 'approved';
   const failureReason =
     (analysisStatus === 'failed' ? analysis?.analysis?.status_message : null) ||
     (job?.status === 'failed' ? job.error_message : null);
@@ -143,19 +160,7 @@ export default function AnalysisDetailPage() {
         </section>
       ) : null}
 
-      {!loading && claim && !isApprovedByAdmin ? (
-        <section className="glass rounded-2xl p-6 border border-amber-300/60">
-          <h2 className="text-lg font-bold text-amber-700 mb-2">Detailed Report Locked</h2>
-          <p className="text-sm text-amber-900 mb-2">
-            This detailed report is only available after admin approval.
-          </p>
-          <p className="text-sm text-foreground-main">
-            Current admin status: <strong>{claim.admin_status}</strong>
-          </p>
-        </section>
-      ) : null}
-
-      {!loading && isApprovedByAdmin && !analysis?.analysis ? (
+      {!loading && !analysis?.analysis ? (
         <section className="glass rounded-2xl p-6 border border-primary/10 text-center">
           <p className="text-foreground-muted mb-4">No analysis found for this claim yet.</p>
           <button type="button" className="btn-premium" onClick={runAnalysis} disabled={busy}>
@@ -165,7 +170,7 @@ export default function AnalysisDetailPage() {
         </section>
       ) : null}
 
-      {isApprovedByAdmin && analysis?.analysis && analysis.analysis.status !== 'completed' ? (
+      {analysis?.analysis && analysis.analysis.status !== 'completed' ? (
         <section className="glass rounded-2xl p-6 border border-primary/10 text-center">
           <p className="text-foreground-main font-semibold mb-2">Analysis status: {analysis.analysis.status}</p>
           <p className="text-sm text-foreground-muted mb-4">{job ? `${job.status} (${job.progress}%)` : 'Processing...'}</p>
@@ -176,7 +181,7 @@ export default function AnalysisDetailPage() {
         </section>
       ) : null}
 
-      {isApprovedByAdmin && failureReason ? (
+      {failureReason ? (
         <section className="glass rounded-2xl p-6 border border-red-300/60">
           <h2 className="text-lg font-bold text-red-700 mb-2">Imagery Lookup Failed</h2>
           <p className="text-sm text-red-800 mb-3">{failureReason}</p>
@@ -196,7 +201,7 @@ export default function AnalysisDetailPage() {
         </section>
       ) : null}
 
-      {isApprovedByAdmin && analysis?.analysis?.status === 'completed' ? (
+      {analysis?.analysis?.status === 'completed' ? (
         <>
           {farmerAssessment ? (
             <section className="glass rounded-2xl p-6 border border-primary/10">
@@ -207,38 +212,6 @@ export default function AnalysisDetailPage() {
               <p className="text-xs text-foreground-dim mt-3">
                 Final insurance amount is reviewed by admin and aligned with PMFBY workflow.
               </p>
-            </section>
-          ) : null}
-
-          {metrics ? (
-            <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="glass rounded-xl p-4 border border-primary/10">
-                <p className="text-xs text-foreground-dim uppercase mb-1">NDVI Delta</p>
-                <p className="text-2xl font-bold">{(metrics.ndvi_after - metrics.ndvi_before).toFixed(3)}</p>
-              </div>
-              <div className="glass rounded-xl p-4 border border-primary/10">
-                <p className="text-xs text-foreground-dim uppercase mb-1">NDWI Delta</p>
-                <p className="text-2xl font-bold">{(metrics.ndwi_after - metrics.ndwi_before).toFixed(3)}</p>
-              </div>
-              <div className="glass rounded-xl p-4 border border-primary/10">
-                <p className="text-xs text-foreground-dim uppercase mb-1">EVI Delta</p>
-                <p className="text-2xl font-bold">{(metrics.evi_after - metrics.evi_before).toFixed(3)}</p>
-              </div>
-              <div className="glass rounded-xl p-4 border border-primary/10">
-                <p className="text-xs text-foreground-dim uppercase mb-1">Damage %</p>
-                <p className="text-2xl font-bold">{metrics.damage_percentage.toFixed(1)}%</p>
-              </div>
-            </section>
-          ) : null}
-
-          {ai ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10">
-              <h2 className="text-lg font-bold text-foreground-main mb-3">AI Vegetation Analysis</h2>
-              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                <p><strong>Model:</strong> {ai.model_version}</p>
-                <p><strong>Predicted:</strong> {ai.predicted_class}</p>
-                <p><strong>Damage Probability:</strong> {(ai.damage_probability * 100).toFixed(1)}%</p>
-              </div>
             </section>
           ) : null}
 
@@ -279,6 +252,18 @@ export default function AnalysisDetailPage() {
               <ImagePanel title="EVI After" src={artifacts.evi_after_data_url} />
             </section>
           ) : null}
+
+          <section className="glass rounded-2xl p-4 border border-primary/10 flex justify-end">
+            <button
+              type="button"
+              className="btn-premium"
+              onClick={handleDownloadReportPdf}
+              disabled={reportBusy}
+            >
+              {reportBusy ? <Loader2 size={16} className="animate-spin" /> : null}
+              Download PDF
+            </button>
+          </section>
         </>
       ) : null}
     </div>

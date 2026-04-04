@@ -4,7 +4,6 @@ import base64
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Response, status
-from fastapi.responses import FileResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -357,12 +356,16 @@ async def get_report(
     session: AsyncSession = Depends(db_session_dep),
 ) -> ReportMetadataResponse | FileResponse:
     report_service = ReportService(session)
-    report = await report_service.get_latest_report_or_404(claim_id)
     if download:
-        file_path = Path(report.file_path_or_object_key)
-        if not file_path.exists():
-            raise NotFoundError(f"Report file is missing at '{file_path}'.")
-        return FileResponse(path=file_path, media_type=report.mime_type, filename=file_path.name)
+        pdf_bytes = await report_service.render_report_pdf(claim_id=claim_id)
+        filename = f"cropshield-claim-{claim_id}-report.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    report = await report_service.get_latest_report_or_404(claim_id)
 
     return ReportMetadataResponse(
         id=report.id,

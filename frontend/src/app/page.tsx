@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { RefreshCw, ShieldCheck, TriangleAlert, Wheat } from 'lucide-react';
@@ -41,6 +41,7 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
 }
 
 export default function HomePage() {
+  const advisoryHistoryStorageKey = 'cropshield.advisory.history.v1';
   const { data, loading, error, refetch } = useDashboardSummary();
   const weatherQuery = useWeatherCurrent('Pune');
   const forecastQuery = useWeatherForecast('Pune', 3);
@@ -52,6 +53,9 @@ export default function HomePage() {
   const [advisoryReply, setAdvisoryReply] = useState<string | null>(null);
   const [advisoryError, setAdvisoryError] = useState<string | null>(null);
   const [advisoryLoading, setAdvisoryLoading] = useState(false);
+  const [advisoryHistory, setAdvisoryHistory] = useState<
+    Array<{ asked_at: string; question: string; reply: string }>
+  >([]);
 
   const totalClaims = data?.total_claims ?? 0;
   const approved = data?.approved_claims ?? 0;
@@ -61,6 +65,25 @@ export default function HomePage() {
   const topCommodity = commoditiesQuery.data?.items?.[0];
   const topTrending = trendingQuery.data?.items?.[0];
   const topMandi = mandiQuery.data?.items?.[0];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(advisoryHistoryStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Array<{ asked_at: string; question: string; reply: string }>;
+      if (Array.isArray(parsed)) {
+        setAdvisoryHistory(parsed.slice(0, 10));
+      }
+    } catch {
+      // Ignore malformed history payload and continue with empty state.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(advisoryHistoryStorageKey, JSON.stringify(advisoryHistory.slice(0, 10)));
+  }, [advisoryHistory]);
 
   async function submitAdvisory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,6 +98,14 @@ export default function HomePage() {
     try {
       const response = await advisoryChat({ message: trimmed, language: 'en' });
       setAdvisoryReply(response.reply);
+      setAdvisoryHistory((prev) => [
+        {
+          asked_at: new Date().toISOString(),
+          question: trimmed,
+          reply: response.reply,
+        },
+        ...prev,
+      ].slice(0, 10));
     } catch (err) {
       const message = err instanceof ApiError ? `${err.status}: ${err.message}` : String(err);
       setAdvisoryError(message);
@@ -237,6 +268,28 @@ export default function HomePage() {
           </form>
           {advisoryError ? <p className="mt-2 text-sm text-rose-500">{advisoryError}</p> : null}
           {advisoryReply ? <p className="mt-3 text-sm text-foreground-main">{advisoryReply}</p> : null}
+          {advisoryHistory.length > 0 ? (
+            <div className="mt-4 border-t border-primary/10 pt-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-foreground-dim">Recent Advisory</p>
+                <button
+                  type="button"
+                  onClick={() => setAdvisoryHistory([])}
+                  className="text-xs font-semibold text-foreground-muted hover:text-foreground-main"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="max-h-40 space-y-2 overflow-auto pr-1">
+                {advisoryHistory.map((entry, index) => (
+                  <div key={`${entry.asked_at}-${index}`} className="rounded-lg border border-primary/10 px-2 py-2 text-xs">
+                    <p className="font-semibold text-foreground-main">Q: {entry.question}</p>
+                    <p className="mt-1 text-foreground-muted">A: {entry.reply}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>

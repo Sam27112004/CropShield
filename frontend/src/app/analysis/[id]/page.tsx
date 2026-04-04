@@ -93,6 +93,7 @@ export default function AnalysisDetailPage() {
 
   const metrics = analysis?.analysis?.metrics;
   const ai = analysis?.analysis?.ai_prediction;
+  const decision = analysis?.analysis?.decision;
   const farmerAssessment = analysis?.analysis?.farmer_assessment;
   const analysisStatus = analysis?.analysis?.status;
   const isApprovedByAdmin = claim?.admin_status === 'approved';
@@ -234,6 +235,17 @@ export default function AnalysisDetailPage() {
                 <p><strong>Predicted:</strong> {ai.predicted_class}</p>
                 <p><strong>Damage Probability:</strong> {(ai.damage_probability * 100).toFixed(1)}%</p>
               </div>
+            </section>
+          ) : null}
+
+          {decision ? (
+            <section className="glass rounded-2xl p-6 border border-primary/10">
+              <h2 className="text-lg font-bold text-foreground-main mb-3">Fused Damage Decision</h2>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <p><strong>Decision:</strong> {decision.decision}</p>
+                <p><strong>Confidence:</strong> {(decision.confidence * 100).toFixed(1)}%</p>
+              </div>
+              <p className="text-sm text-foreground-muted mt-3">{decision.rationale}</p>
             </section>
           ) : null}
 

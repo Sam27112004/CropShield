@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 
@@ -11,10 +11,28 @@ interface AdvisoryEntry {
 }
 
 export default function AdvisoryPage() {
+  const historyStorageKey = 'cropshield.advisory.history.v1';
   const [message, setMessage] = useState('How do I reduce heat stress in paddy this week?');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<AdvisoryEntry[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(historyStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as AdvisoryEntry[];
+      if (Array.isArray(parsed)) {
+        setEntries(parsed.slice(0, 20));
+      }
+    } catch {
+      // Ignore malformed local history payload.
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(historyStorageKey, JSON.stringify(entries.slice(0, 20)));
+  }, [entries]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,7 +71,10 @@ export default function AdvisoryPage() {
         </div>
         <button
           type="button"
-          onClick={() => setEntries([])}
+          onClick={() => {
+            setEntries([]);
+            window.localStorage.removeItem(historyStorageKey);
+          }}
           disabled={entries.length === 0}
           className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -90,7 +111,7 @@ export default function AdvisoryPage() {
         {entries.length === 0 ? (
           <p className="text-sm text-foreground-muted">No advisory messages yet.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="max-h-[420px] overflow-auto space-y-3 pr-1">
             {entries.map((entry, index) => (
               <div key={`${entry.asked_at}-${index}`} className="rounded-xl border border-primary/10 px-3 py-3">
                 <p className="text-xs text-foreground-dim">{new Date(entry.asked_at).toLocaleString()}</p>

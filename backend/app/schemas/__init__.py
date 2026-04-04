@@ -15,6 +15,18 @@ from app.schemas.farm import FarmLookupRequest, FarmProfileListResponse, FarmPro
 from app.schemas.health import HealthResponse, ReadinessResponse
 from app.schemas.job import JobStatusResponse
 from app.schemas.report import ReportCreateRequest, ReportMetadataResponse
+from app.schemas.weather import WeatherAlertsResponse, WeatherCurrentResponse, WeatherForecastResponse
+from app.schemas.market import CommodityListResponse, MandiDataResponse, TrendingCommoditiesResponse
+from app.schemas.advisory import AdvisoryChatRequest, AdvisoryChatResponse
+from app.schemas.forum import (
+    ForumPostCreateRequest,
+    ForumPostListResponse,
+    ForumPostResponse,
+    ForumReplyCreateRequest,
+    ForumReplyListResponse,
+    ForumReplyResponse,
+    ForumSearchResponse,
+)
 
 __all__ = [
     "AIPredictionRead",
@@ -45,4 +57,19 @@ __all__ = [
     "JobStatusResponse",
     "ReportCreateRequest",
     "ReportMetadataResponse",
+    "WeatherAlertsResponse",
+    "WeatherCurrentResponse",
+    "WeatherForecastResponse",
+    "CommodityListResponse",
+    "MandiDataResponse",
+    "TrendingCommoditiesResponse",
+    "AdvisoryChatRequest",
+    "AdvisoryChatResponse",
+    "ForumPostCreateRequest",
+    "ForumPostListResponse",
+    "ForumPostResponse",
+    "ForumReplyCreateRequest",
+    "ForumReplyListResponse",
+    "ForumReplyResponse",
+    "ForumSearchResponse",
 ]

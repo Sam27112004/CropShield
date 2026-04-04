@@ -37,6 +37,7 @@ const farmerNavItems = [
   { icon: Sprout, label: 'Crop Predictor', href: '/crop-predictor' },
   { icon: ScanSearch, label: 'Disease', href: '/disease' },
   { icon: MessageSquare, label: 'Forum', href: '/forum' },
+  { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 
 export const Sidebar = () => {
@@ -92,7 +93,7 @@ export const Sidebar = () => {
           </button>
         </div>
 
-        <nav className="flex flex-col gap-2 flex-1">
+        <nav className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-1">
           {activeNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;

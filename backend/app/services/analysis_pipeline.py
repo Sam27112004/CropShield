@@ -132,6 +132,12 @@ class AnalysisPipelineService:
                 confidence=decision_result.confidence,
                 rationale=decision_result.rationale,
                 rules_version=self.settings.rules_version,
+                fused_damage=decision_result.fused_damage,
+                ndvi_damage=decision_result.ndvi_damage,
+                ndwi_damage=decision_result.ndwi_damage,
+                evi_damage=decision_result.evi_damage,
+                ai_damage=decision_result.ai_damage,
+                area_score=decision_result.area_score,
             )
             await self.analysis.mark_completed(
                 run,

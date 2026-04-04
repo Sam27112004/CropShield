@@ -153,6 +153,12 @@ class AnalysisRepository:
         confidence: float,
         rationale: str,
         rules_version: str,
+        fused_damage: float,
+        ndvi_damage: float,
+        ndwi_damage: float,
+        evi_damage: float,
+        ai_damage: float,
+        area_score: float,
     ) -> Decision:
         decision_row = Decision(
             claim_id=claim_id,
@@ -161,6 +167,12 @@ class AnalysisRepository:
             confidence=confidence,
             rationale=rationale,
             rules_version=rules_version,
+            fused_damage=fused_damage,
+            ndvi_damage=ndvi_damage,
+            ndwi_damage=ndwi_damage,
+            evi_damage=evi_damage,
+            ai_damage=ai_damage,
+            area_score=area_score,
         )
         self.session.add(decision_row)
         await self.session.flush()

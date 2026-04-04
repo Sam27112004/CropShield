@@ -108,7 +108,19 @@ def _to_analysis_schema(analysis: AnalysisRun | None) -> AnalysisRunRead | None:
             area_score=float(latest_decision.area_score),
         )
     farmer_assessment = None
-    if metrics is not None:
+    if decision is not None:
+        damage_score = decision.fused_damage
+        risk_level = _risk_label(damage_score)
+        summary = (
+            f"Estimated crop damage is {damage_score:.1f}% based on fused NDVI, NDWI, EVI, AI, and area signals. "
+            f"Risk level: {risk_level}."
+        )
+        farmer_assessment = DamageAssessmentRead(
+            possible_damage_percentage=damage_score,
+            risk_level=risk_level,
+            summary=summary,
+        )
+    elif metrics is not None:
         risk_level = _risk_label(metrics.damage_percentage)
         summary = (
             f"Estimated crop damage is {metrics.damage_percentage:.1f}% based on NDVI change. "

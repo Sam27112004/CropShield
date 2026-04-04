@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog, MessageSquare, CloudSun, TrendingUp, Bot, ScanSearch, Sprout, Wallet } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog, MessageSquare, CloudSun, TrendingUp, Bot, ScanSearch, Sprout, Wallet, Languages, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +15,9 @@ const navItems = [
   { icon: TrendingUp, label: 'Market', href: '/market' },
   { icon: Wallet, label: 'Financial', href: '/financial' },
   { icon: Bot, label: 'Advisory', href: '/advisory' },
+  { icon: Bot, label: 'Chatbot', href: '/chatbot' },
+  { icon: Languages, label: 'Multilingual', href: '/multilingual-chatbot' },
+  { icon: Sparkles, label: 'Smart Advisor', href: '/smart-advisor' },
   { icon: Sprout, label: 'Crop Predictor', href: '/crop-predictor' },
   { icon: ScanSearch, label: 'Disease', href: '/disease' },
   { icon: MessageSquare, label: 'Forum', href: '/forum' },
@@ -28,6 +31,9 @@ const farmerNavItems = [
   { icon: TrendingUp, label: 'Market', href: '/market' },
   { icon: Wallet, label: 'Financial', href: '/financial' },
   { icon: Bot, label: 'Advisory', href: '/advisory' },
+  { icon: Bot, label: 'Chatbot', href: '/chatbot' },
+  { icon: Languages, label: 'Multilingual', href: '/multilingual-chatbot' },
+  { icon: Sparkles, label: 'Smart Advisor', href: '/smart-advisor' },
   { icon: Sprout, label: 'Crop Predictor', href: '/crop-predictor' },
   { icon: ScanSearch, label: 'Disease', href: '/disease' },
   { icon: MessageSquare, label: 'Forum', href: '/forum' },

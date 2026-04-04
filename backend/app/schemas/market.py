@@ -34,3 +34,11 @@ class MandiDataItem(BaseModel):
 
 class MandiDataResponse(BaseModel):
     items: list[MandiDataItem]
+
+
+class FinancialSummaryResponse(BaseModel):
+    estimated_revenue_inr: float
+    estimated_cost_inr: float
+    estimated_profit_inr: float
+    margin_percent: float
+    recommendation: str

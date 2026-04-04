@@ -25,6 +25,23 @@ async def test_weather_market_and_advisory_routes_return_200(client, admin_heade
     advisory_body = advisory_resp.json()
     assert advisory_body["provider"] == "fallback"
 
+    crop_predict_resp = await client.post(
+        "/api/v1/advisory/crop-predict",
+        json={
+            "crop_type": "rice",
+            "soil_type": "loam",
+            "rainfall_mm": 920,
+            "temperature_c": 29,
+        },
+        headers=admin_headers,
+    )
+    assert crop_predict_resp.status_code == 200
+    assert crop_predict_resp.json()["expected_yield_tph"] > 0
+
+    financial_resp = await client.get("/api/v1/market/financial-summary", headers=admin_headers)
+    assert financial_resp.status_code == 200
+    assert financial_resp.json()["estimated_revenue_inr"] > 0
+
 
 @pytest.mark.asyncio
 async def test_forum_routes_create_and_search_posts(client, farmer_headers) -> None:

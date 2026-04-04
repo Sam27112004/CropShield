@@ -49,3 +49,23 @@ class MarketServiceAdapter:
                 },
             ]
         }
+
+    async def financial_summary(self) -> dict[str, object]:
+        estimated_revenue = 185000.0
+        estimated_cost = 121500.0
+        estimated_profit = estimated_revenue - estimated_cost
+        margin = (estimated_profit / estimated_revenue) * 100 if estimated_revenue else 0.0
+
+        recommendation = (
+            "Healthy margin detected. Consider partial hedging for high-volatility commodities."
+            if margin >= 25
+            else "Margin is tight. Optimize input costs and review mandi timing for better exits."
+        )
+
+        return {
+            "estimated_revenue_inr": round(estimated_revenue, 2),
+            "estimated_cost_inr": round(estimated_cost, 2),
+            "estimated_profit_inr": round(estimated_profit, 2),
+            "margin_percent": round(margin, 2),
+            "recommendation": recommendation,
+        }

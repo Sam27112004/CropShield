@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog, MessageSquare, CloudSun, TrendingUp, Bot, ScanSearch } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -11,6 +11,10 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: FileText, label: 'Farmer Requests', href: '/farmer/requests' },
   { icon: BarChart3, label: 'Analysis', href: '/analysis' },
+  { icon: CloudSun, label: 'Weather', href: '/weather' },
+  { icon: TrendingUp, label: 'Market', href: '/market' },
+  { icon: Bot, label: 'Advisory', href: '/advisory' },
+  { icon: ScanSearch, label: 'Disease', href: '/disease' },
   { icon: MessageSquare, label: 'Forum', href: '/forum' },
   { icon: UserCog, label: 'Admin', href: '/admin' },
   { icon: Settings, label: 'Settings', href: '/settings' },
@@ -18,6 +22,10 @@ const navItems = [
 
 const farmerNavItems = [
   { icon: FileText, label: 'Farmer Requests', href: '/farmer/requests' },
+  { icon: CloudSun, label: 'Weather', href: '/weather' },
+  { icon: TrendingUp, label: 'Market', href: '/market' },
+  { icon: Bot, label: 'Advisory', href: '/advisory' },
+  { icon: ScanSearch, label: 'Disease', href: '/disease' },
   { icon: MessageSquare, label: 'Forum', href: '/forum' },
 ];
 

@@ -18,6 +18,8 @@ import {
   getWeatherAlerts,
   getWeatherCurrent,
   getWeatherForecast,
+  advisoryChat,
+  detectDisease,
 } from '@/lib/api';
 import type {
   AdminClaimsResponse,
@@ -35,6 +37,9 @@ import type {
   WeatherAlerts,
   WeatherCurrent,
   WeatherForecast,
+  AdvisoryChatResponse,
+  DiseaseDetectRequest,
+  DiseaseDetectResponse,
 } from '@/types/api';
 
 interface UseQueryResult<T> {
@@ -118,6 +123,14 @@ export function useTrendingCommodities() {
 
 export function useMandiData() {
   return useQuery<MandiDataResponse>(getMandiData);
+}
+
+export function useAdvisoryChat(payload: { message: string; language: string }, enabled = false) {
+  return useQuery<AdvisoryChatResponse>(() => advisoryChat(payload), { enabled });
+}
+
+export function useDiseaseDetect(payload: DiseaseDetectRequest, enabled = false) {
+  return useQuery<DiseaseDetectResponse>(() => detectDisease(payload), { enabled });
 }
 
 export function useClaims(params?: { limit?: number; offset?: number }) {

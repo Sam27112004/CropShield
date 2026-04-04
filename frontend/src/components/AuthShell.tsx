@@ -7,6 +7,8 @@ import { Header } from '@/components/Header';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useAuth } from '@/context/AuthContext';
 
+const FARMER_ALLOWED_PREFIXES = ['/farmer', '/weather', '/market', '/advisory', '/disease', '/forum', '/settings'];
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-deep">
@@ -35,7 +37,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (user?.role === 'farmer' && !pathname.startsWith('/farmer')) {
+    if (user?.role === 'farmer' && !FARMER_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
       router.replace('/farmer/requests');
     }
   }, [isLoading, pathname, router, user]);

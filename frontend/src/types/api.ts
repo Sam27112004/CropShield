@@ -332,6 +332,17 @@ export interface AdvisoryChatResponse {
   fallback_used: boolean;
 }
 
+export interface DiseaseDetectRequest {
+  image_name: string;
+  crop_type?: string;
+}
+
+export interface DiseaseDetectResponse {
+  predicted_disease: string;
+  confidence: number;
+  recommendation: string;
+}
+
 export interface ForumPost {
   id: number;
   title: string;

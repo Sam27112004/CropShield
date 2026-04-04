@@ -37,6 +37,8 @@ import type {
   ForumReplyCreateRequest,
   ForumRepliesResponse,
   ForumSearchResponse,
+  DiseaseDetectRequest,
+  DiseaseDetectResponse,
 } from '@/types/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
@@ -432,6 +434,13 @@ export async function likeForumPost(postId: number): Promise<ForumPost> {
 export async function searchForumPosts(query: string): Promise<ForumSearchResponse> {
   const qs = new URLSearchParams({ query });
   return apiFetch<ForumSearchResponse>(`/forum/search?${qs.toString()}`);
+}
+
+export async function detectDisease(payload: DiseaseDetectRequest): Promise<DiseaseDetectResponse> {
+  return apiFetch<DiseaseDetectResponse>('/disease/detect', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getAdminClaims(params?: {

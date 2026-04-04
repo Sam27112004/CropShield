@@ -64,3 +64,6 @@ logs/
 # Cache
 .cache/
 .pytest_cache/
+
+# ML artifacts
+*.pkl

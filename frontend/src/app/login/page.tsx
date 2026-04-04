@@ -1,0 +1,198 @@
+'use client';
+
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ShieldCheck, Tractor } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+          }) => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: Record<string, string | number | boolean>
+          ) => void;
+        };
+      };
+    };
+  }
+}
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { user, loginAdmin, loginFarmerWithGoogleCredential } = useAuth();
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+  const canUseGoogle = googleClientId.trim().length > 0;
+
+  useEffect(() => {
+    if (user) {
+      router.replace(user.role === 'farmer' ? '/farmer/requests' : '/');
+    }
+  }, [router, user]);
+
+  useEffect(() => {
+    if (!canUseGoogle) return;
+
+    const existingScript = document.getElementById('google-identity-script');
+    const mountGoogle = () => {
+      const buttonContainer = document.getElementById('google-signin-button');
+      if (!buttonContainer || !window.google?.accounts?.id) return;
+      buttonContainer.innerHTML = '';
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          const result = loginFarmerWithGoogleCredential(response.credential);
+          if (!result.success) {
+            setMessage(result.message ?? 'Google login failed.');
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(buttonContainer, {
+        theme: 'outline',
+        size: 'large',
+        width: 300,
+        text: activeTab === 'signup' ? 'signup_with' : 'signin_with',
+        shape: 'pill',
+      });
+    };
+
+    if (existingScript) {
+      mountGoogle();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-identity-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = mountGoogle;
+    document.head.appendChild(script);
+  }, [activeTab, canUseGoogle, googleClientId, loginFarmerWithGoogleCredential]);
+
+  const farmerSubtitle = useMemo(() => {
+    return activeTab === 'signup'
+      ? 'New farmer? Create your account with Google in one click.'
+      : 'Farmer login using Google account.';
+  }, [activeTab]);
+
+  const handleAdminSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessage(null);
+    const result = loginAdmin(adminUsername, adminPassword);
+    if (!result.success) {
+      setMessage(result.message ?? 'Admin login failed.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background-deep flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-6">
+        <section className="glass rounded-2xl border border-primary/10 p-8">
+          <h1 className="text-3xl font-bold gradient-text mb-2">CropShield AI Access</h1>
+          <p className="text-sm text-foreground-muted mb-6">
+            Sign in to continue. Admin uses hardcoded credentials, farmers use Google authentication.
+          </p>
+
+          <div className="inline-flex rounded-xl border border-primary/20 bg-white/70 p-1 mb-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('login')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                activeTab === 'login' ? 'bg-primary text-white' : 'text-foreground-main hover:bg-primary/5'
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('signup')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                activeTab === 'signup' ? 'bg-primary text-white' : 'text-foreground-main hover:bg-primary/5'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {message ? (
+            <div className="mb-4 rounded-xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {message}
+            </div>
+          ) : null}
+
+          <div className="grid gap-4">
+            <article className="rounded-xl border border-primary/15 bg-white/70 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck size={18} className="text-primary" />
+                <h2 className="font-semibold text-foreground-main">Admin Login</h2>
+              </div>
+              <p className="text-xs text-foreground-dim mb-3">Use: username admin, password admin</p>
+              <form onSubmit={handleAdminSubmit} className="grid gap-2">
+                <input
+                  type="text"
+                  value={adminUsername}
+                  onChange={(e) => setAdminUsername(e.target.value)}
+                  placeholder="Username"
+                  className="w-full rounded-xl border border-primary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-xl border border-primary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                <button type="submit" className="btn-premium w-full">
+                  Login as Admin
+                </button>
+              </form>
+            </article>
+
+            <article className="rounded-xl border border-primary/15 bg-white/70 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Tractor size={18} className="text-primary" />
+                <h2 className="font-semibold text-foreground-main">
+                  {activeTab === 'signup' ? 'Farmer Sign Up' : 'Farmer Login'}
+                </h2>
+              </div>
+              <p className="text-xs text-foreground-dim mb-3">{farmerSubtitle}</p>
+              {canUseGoogle ? (
+                <div id="google-signin-button" className="min-h-11" />
+              ) : (
+                <div className="rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Google login needs NEXT_PUBLIC_GOOGLE_CLIENT_ID in frontend environment.
+                </div>
+              )}
+            </article>
+          </div>
+        </section>
+
+        <section className="glass rounded-2xl border border-primary/10 p-8 flex flex-col justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground-main mb-3">Role-based Entry</h2>
+            <ul className="text-sm text-foreground-muted space-y-2">
+              <li>Admin: full dashboard, analysis, and review workflow.</li>
+              <li>Farmer: access to farmer requests and claim submission flow.</li>
+              <li>Session persists in browser until logout.</li>
+            </ul>
+          </div>
+          <p className="text-xs text-foreground-dim mt-8">
+            Security note: admin credentials are hardcoded for prototype use only.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}

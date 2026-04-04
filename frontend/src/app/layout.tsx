@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import { AuthShell } from "@/components/AuthShell";
+import { AuthProvider } from "@/context/AuthContext";
+import { SidebarProvider } from "@/context/SidebarContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,8 +27,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${outfit.variable} bg-background-deep text-foreground-main`}>
-        {children}
+      <body className={`${inter.variable} ${outfit.variable}`}>
+        <AuthProvider>
+          <SidebarProvider>
+            <AuthShell>{children}</AuthShell>
+          </SidebarProvider>
+        </AuthProvider>
       </body>
     </html>
   );

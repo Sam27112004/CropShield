@@ -1,30 +1,186 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  /* ── Terra Magna ── Agri-Tech Premium Palette
+     #F0EDE4  warm parchment   (background — harvested wheat / sandy soil)
+     #7DB87A  fresh leaf       (secondary — new crop growth)
+     #336B4B  deep forest      (primary — mature canopy, strong & trustworthy)
+     #1C3829  dark forest      (accent — deepest shadow, headings, text)
+  */
+
+  --color-primary:       #336B4B;
+  --color-primary-light: #7DB87A;
+  --color-primary-glow:  rgba(51, 107, 75, 0.20);
+  --color-secondary:     #7DB87A;
+  --color-accent:        #1C3829;
+
+  --color-background-deep:       #F0EDE4;
+  --color-background-slate:      #E5E0D5;
+  --color-background-card:       rgba(255, 255, 255, 0.58);
+  --color-background-card-hover: rgba(255, 255, 255, 0.80);
+
+  --color-foreground-main:   #1C3829;
+  --color-foreground-muted:  #2A5240;
+  --color-foreground-dim:    #336B4B;
+
+  --color-border-glass:  rgba(51, 107, 75, 0.14);
+  --color-border-active: rgba(51, 107, 75, 0.32);
+
+  /* Fonts */
+  --font-inter:  'Inter', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+
+  /* Box Shadows */
+  --shadow-premium: 0 10px 25px -5px rgba(28, 56, 41, 0.12), 0 8px 10px -6px rgba(28, 56, 41, 0.07);
+  --shadow-glow:    0 0 20px rgba(51, 107, 75, 0.10);
+}
 
 :root {
-  --font-inter: "Inter", sans-serif;
-  --font-outfit: "Outfit", sans-serif;
+  /* Legacy CSS variables for non-Tailwind usage */
+  --bg-deep:      #F0EDE4;
+  --bg-slate:     #E5E0D5;
+  --primary:      #336B4B;
+  --primary-glow: rgba(51, 107, 75, 0.20);
+  --secondary:    #7DB87A;
+  --accent:       #1C3829;
+  --text-main:    #1C3829;
+  --text-muted:   #2A5240;
+  --text-dim:     #336B4B;
+  --border-glass: rgba(51, 107, 75, 0.14);
 }
 
-* {
-  @apply m-0 p-0 border-border-glass;
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  html, body {
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+    font-family: var(--font-inter);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    height: 100%;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-outfit);
+    letter-spacing: -0.02em;
+  }
 }
 
-body {
-  @apply font-inter bg-background-deep text-foreground-main;
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(51, 107, 75, 0.14);
+  }
+
+  .glass-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.80);
+    border-color: rgba(51, 107, 75, 0.32);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -10px rgba(28, 56, 41, 0.14);
+  }
+
+  .btn-premium {
+    @apply inline-flex items-center justify-center gap-[10px] px-[1.6rem] py-[0.8rem] bg-primary text-white border-none rounded-md font-semibold font-inter cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-[0_4px_14px_0_rgba(28,56,41,0.22)] no-underline;
+  }
+
+  .btn-premium:hover {
+    @apply bg-accent -translate-y-[2px] shadow-[0_6px_20px_rgba(28,56,41,0.32)];
+  }
+
+  .btn-premium:active {
+    @apply translate-y-0;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-accent to-primary;
+  }
+
+  /* Layout Utilities */
+  .layout-wrapper {
+    @apply flex min-h-screen bg-background-deep;
+  }
+
+  .main-content {
+    @apply flex-1 ml-[280px] p-[32px] flex flex-col;
+  }
+
+  .page-container {
+    @apply mt-[104px] px-[1rem] flex-1;
+  }
+  /* ── Styled Dropdown / Select ── */
+  .select-styled {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: rgba(255, 255, 255, 0.70);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(51, 107, 75, 0.20);
+    color: var(--text-main);
+    font-family: var(--font-inter);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 2.5rem 0.5rem 0.85rem;
+    border-radius: 10px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    /* Custom chevron arrow using inline SVG */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23336B4B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 15px;
+  }
+
+  .select-styled:hover {
+    border-color: rgba(51, 107, 75, 0.40);
+    background-color: rgba(255, 255, 255, 0.90);
+  }
+
+  .select-styled:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(51, 107, 75, 0.15);
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Option items (limited browser support, but adds intent) */
+  .select-styled option {
+    background: #F0EDE4;
+    color: var(--text-main);
+    font-weight: 500;
+    padding: 6px 10px;
+  }
 }
 
-.glass {
-  @apply bg-background-card backdrop-blur-md border border-border-glass transition-all duration-300;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.glass:hover {
-  @apply bg-background-cardHover border-border-active shadow-premium;
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
 }
 
-.gradient-text {
-  @apply bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent;
+::-webkit-scrollbar-thumb {
+  background: var(--bg-slate);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }

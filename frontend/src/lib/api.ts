@@ -30,6 +30,13 @@ import type {
   MandiDataResponse,
   AdvisoryChatRequest,
   AdvisoryChatResponse,
+  ForumPost,
+  ForumPostCreateRequest,
+  ForumPostsResponse,
+  ForumReply,
+  ForumReplyCreateRequest,
+  ForumRepliesResponse,
+  ForumSearchResponse,
 } from '@/types/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
@@ -394,6 +401,37 @@ export async function advisoryChat(payload: AdvisoryChatRequest): Promise<Adviso
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function listForumPosts(): Promise<ForumPostsResponse> {
+  return apiFetch<ForumPostsResponse>('/forum/posts');
+}
+
+export async function createForumPost(payload: ForumPostCreateRequest): Promise<ForumPost> {
+  return apiFetch<ForumPost>('/forum/posts', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function listForumReplies(postId: number): Promise<ForumRepliesResponse> {
+  return apiFetch<ForumRepliesResponse>(`/forum/posts/${postId}/replies`);
+}
+
+export async function createForumReply(postId: number, payload: ForumReplyCreateRequest): Promise<ForumReply> {
+  return apiFetch<ForumReply>(`/forum/posts/${postId}/replies`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function likeForumPost(postId: number): Promise<ForumPost> {
+  return apiFetch<ForumPost>(`/forum/posts/${postId}/like`, { method: 'POST' });
+}
+
+export async function searchForumPosts(query: string): Promise<ForumSearchResponse> {
+  const qs = new URLSearchParams({ query });
+  return apiFetch<ForumSearchResponse>(`/forum/search?${qs.toString()}`);
 }
 
 export async function getAdminClaims(params?: {

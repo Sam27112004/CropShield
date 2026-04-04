@@ -332,6 +332,45 @@ export interface AdvisoryChatResponse {
   fallback_used: boolean;
 }
 
+export interface ForumPost {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  like_count: number;
+  created_at: string;
+}
+
+export interface ForumReply {
+  id: number;
+  post_id: number;
+  content: string;
+  author: string;
+  created_at: string;
+}
+
+export interface ForumPostCreateRequest {
+  title: string;
+  content: string;
+}
+
+export interface ForumReplyCreateRequest {
+  content: string;
+}
+
+export interface ForumPostsResponse {
+  items: ForumPost[];
+}
+
+export interface ForumRepliesResponse {
+  items: ForumReply[];
+}
+
+export interface ForumSearchResponse {
+  query: string;
+  items: ForumPost[];
+}
+
 export interface AdminClaim {
   claim_id: number;
   farm_profile_id?: number | null;

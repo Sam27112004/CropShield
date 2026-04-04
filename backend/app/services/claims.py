@@ -14,7 +14,7 @@ class ClaimService:
         self.repo = ClaimRepository(session)
         self.farms = FarmRepository(session)
 
-    async def create_claim(self, payload: ClaimCreateRequest):
+    async def create_claim(self, payload: ClaimCreateRequest, *, farmer_user_id: int | None = None):
         farm_profile_id = payload.farm_profile_id
         farmer_name = payload.farmer_name
         area_hectares = payload.farm_area_hectares
@@ -31,6 +31,7 @@ class ClaimService:
             longitude = float(farm.centroid_longitude)
 
         claim = await self.repo.create(
+            farmer_user_id=farmer_user_id,
             farm_profile_id=farm_profile_id,
             farmer_name=str(farmer_name),
             crop_type=payload.crop_type,
@@ -43,8 +44,8 @@ class ClaimService:
         await self.session.refresh(claim)
         return claim
 
-    async def list_claims(self, *, limit: int, offset: int):
-        claims = await self.repo.list_claims(limit=limit, offset=offset)
+    async def list_claims(self, *, limit: int, offset: int, farmer_user_id: int | None = None):
+        claims = await self.repo.list_claims(limit=limit, offset=offset, farmer_user_id=farmer_user_id)
         return claims
 
     async def get_claim_or_404(self, claim_id: int):

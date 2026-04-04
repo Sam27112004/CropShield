@@ -11,6 +11,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.db.models.analysis_run import AnalysisRun
     from app.db.models.decision import Decision
+    from app.db.models.farmer_user import FarmerUser
     from app.db.models.farm_profile import FarmProfile
     from app.db.models.report import Report
 
@@ -19,6 +20,9 @@ class Claim(Base):
     __tablename__ = "claims"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    farmer_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("farmer_users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     farm_profile_id: Mapped[int | None] = mapped_column(
         ForeignKey("farm_profiles.id", ondelete="SET NULL"), nullable=True, index=True
     )

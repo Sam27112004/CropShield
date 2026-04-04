@@ -6,7 +6,7 @@ from app.db.models import FarmProfile
 
 
 @pytest.mark.asyncio
-async def test_create_claim_from_farm_profile_uses_saved_extent_center(client, session_maker) -> None:
+async def test_create_claim_from_farm_profile_uses_saved_extent_center(client, session_maker, admin_headers) -> None:
     async with session_maker() as session:
         farm = FarmProfile(
             farmer_name="Kiran Jadhav",
@@ -57,6 +57,7 @@ async def test_create_claim_from_farm_profile_uses_saved_extent_center(client, s
             "crop_type": "Rice",
             "damage_date": "2023-09-10",
         },
+        headers=admin_headers,
     )
     assert response.status_code == 201
     body = response.json()
@@ -69,7 +70,7 @@ async def test_create_claim_from_farm_profile_uses_saved_extent_center(client, s
 
 
 @pytest.mark.asyncio
-async def test_admin_review_endpoint_updates_claim(client) -> None:
+async def test_admin_review_endpoint_updates_claim(client, admin_headers) -> None:
     create_resp = await client.post(
         "/api/v1/claims",
         json={
@@ -80,6 +81,7 @@ async def test_admin_review_endpoint_updates_claim(client) -> None:
             "longitude": 73.8467,
             "damage_date": "2023-09-01",
         },
+        headers=admin_headers,
     )
     claim_id = create_resp.json()["id"]
 

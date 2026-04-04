@@ -8,7 +8,7 @@ from app.db.models import AnalysisRun
 
 
 @pytest.mark.asyncio
-async def test_analyze_job_trigger_returns_202_and_job(client) -> None:
+async def test_analyze_job_trigger_returns_202_and_job(client, admin_headers) -> None:
     create_resp = await client.post(
         "/api/v1/claims",
         json={
@@ -19,12 +19,14 @@ async def test_analyze_job_trigger_returns_202_and_job(client) -> None:
             "longitude": 72.8777,
             "damage_date": "2023-09-01",
         },
+        headers=admin_headers,
     )
     claim_id = create_resp.json()["id"]
 
     analyze_resp = await client.post(
         f"/api/v1/claims/{claim_id}/analyze",
         json={"gap_before": 5, "gap_after": 5, "window_days": 10, "max_cloud_threshold": 100, "upscale_factor": 2},
+        headers=admin_headers,
     )
     assert analyze_resp.status_code == 202
     job_id = analyze_resp.json()["job_id"]
@@ -35,7 +37,7 @@ async def test_analyze_job_trigger_returns_202_and_job(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_report_job_trigger_returns_202_when_analysis_exists(client, session_maker) -> None:
+async def test_report_job_trigger_returns_202_when_analysis_exists(client, session_maker, admin_headers) -> None:
     create_resp = await client.post(
         "/api/v1/claims",
         json={
@@ -46,6 +48,7 @@ async def test_report_job_trigger_returns_202_when_analysis_exists(client, sessi
             "longitude": 72.5714,
             "damage_date": "2023-06-11",
         },
+        headers=admin_headers,
     )
     claim_id = create_resp.json()["id"]
 
@@ -65,7 +68,7 @@ async def test_report_job_trigger_returns_202_when_analysis_exists(client, sessi
         )
         await session.commit()
 
-    report_resp = await client.post(f"/api/v1/claims/{claim_id}/report", json={})
+    report_resp = await client.post(f"/api/v1/claims/{claim_id}/report", json={}, headers=admin_headers)
     assert report_resp.status_code == 202
     job_id = report_resp.json()["job_id"]
     job_resp = await client.get(f"/api/v1/jobs/{job_id}")

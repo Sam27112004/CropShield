@@ -9,6 +9,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from datetime import timedelta
 
 
 TEST_DB_PATH = Path(__file__).resolve().parent / "test_api.db"
@@ -26,7 +27,10 @@ os.environ["ADMIN_PASSWORD"] = "admin"
 os.environ["GOOGLE_CLIENT_ID"] = "test-client-id.apps.googleusercontent.com"
 
 from app.api.deps import db_session_dep, redis_dep  # noqa: E402
+from app.core.config import get_settings  # noqa: E402
+from app.core.security import create_token  # noqa: E402
 from app.db.base import Base  # noqa: E402
+from app.db.models import FarmerUser  # noqa: E402
 from app.main import app  # noqa: E402
 from app.workers.tasks import analyze_claim_task, generate_report_task  # noqa: E402
 
@@ -113,3 +117,37 @@ async def client(session_maker, redis_client, monkeypatch) -> AsyncGenerator[Asy
         yield async_client
 
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def admin_headers() -> dict[str, str]:
+    settings = get_settings()
+    token = create_token(
+        {"sub": settings.admin_username, "role": "admin", "name": settings.admin_username},
+        settings.jwt_secret,
+        timedelta(hours=1),
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def farmer_headers(session_maker) -> dict[str, str]:
+    settings = get_settings()
+    async with session_maker() as session:
+        farmer = FarmerUser(email="farmer@example.com", name="Farmer Example", picture_url=None)
+        session.add(farmer)
+        await session.commit()
+        await session.refresh(farmer)
+        farmer_id = farmer.id
+    token = create_token(
+        {
+            "sub": "farmer@example.com",
+            "role": "farmer",
+            "farmer_id": farmer_id,
+            "name": "Farmer Example",
+            "email": "farmer@example.com",
+        },
+        settings.jwt_secret,
+        timedelta(hours=1),
+    )
+    return {"Authorization": f"Bearer {token}"}

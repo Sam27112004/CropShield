@@ -14,6 +14,7 @@ class ClaimRepository:
     async def create(
         self,
         *,
+        farmer_user_id: int | None,
         farm_profile_id: int | None,
         farmer_name: str,
         crop_type: str,
@@ -23,6 +24,7 @@ class ClaimRepository:
         damage_date,
     ) -> Claim:
         claim = Claim(
+            farmer_user_id=farmer_user_id,
             farm_profile_id=farm_profile_id,
             farmer_name=farmer_name,
             crop_type=crop_type,
@@ -37,7 +39,7 @@ class ClaimRepository:
         await self.session.flush()
         return claim
 
-    async def list_claims(self, *, limit: int, offset: int) -> list[Claim]:
+    async def list_claims(self, *, limit: int, offset: int, farmer_user_id: int | None = None) -> list[Claim]:
         stmt: Select[tuple[Claim]] = (
             select(Claim)
             .options(selectinload(Claim.farm_profile))
@@ -45,6 +47,8 @@ class ClaimRepository:
             .limit(limit)
             .offset(offset)
         )
+        if farmer_user_id is not None:
+            stmt = stmt.where(Claim.farmer_user_id == farmer_user_id)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

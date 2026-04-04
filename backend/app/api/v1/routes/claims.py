@@ -3,14 +3,16 @@ from __future__ import annotations
 import base64
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import db_session_dep, redis_dep
 from app.core.config import get_settings
 from app.core.exceptions import NotFoundError
+from app.core.security import get_current_user
 from app.db.models import AnalysisRun
+from app.schemas.auth import AuthenticatedUser
 from app.schemas.analysis import (
     AIPredictionRead,
     AnalysisArtifactsResponse,
@@ -32,6 +34,11 @@ from app.services.satellite import SatelliteService
 from app.utils.domain_helpers import array_to_png_bytes
 
 router = APIRouter(prefix="/claims", tags=["claims"])
+
+
+def _assert_claim_access_or_403(claim, current_user: AuthenticatedUser) -> None:
+    if current_user.role == "farmer" and claim.farmer_user_id != current_user.farmer_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
 def _risk_label(damage_percentage: float) -> str:
@@ -180,10 +187,12 @@ async def create_claim(
     payload: ClaimCreateRequest,
     session: AsyncSession = Depends(db_session_dep),
     redis_client: Redis = Depends(redis_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ClaimRead:
     service = ClaimService(session)
     dashboard = DashboardService(session, redis_client=redis_client)
-    claim = await service.create_claim(payload)
+    owner_farmer_user_id = current_user.farmer_id if current_user.role == "farmer" else None
+    claim = await service.create_claim(payload, farmer_user_id=owner_farmer_user_id)
     await dashboard.invalidate_summary_cache()
     return _to_claim_schema(claim)
 
@@ -193,9 +202,11 @@ async def list_claims(
     limit: int = Query(default=20, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ClaimListResponse:
     service = ClaimService(session)
-    claims = await service.list_claims(limit=limit, offset=offset)
+    owner_farmer_user_id = current_user.farmer_id if current_user.role == "farmer" else None
+    claims = await service.list_claims(limit=limit, offset=offset, farmer_user_id=owner_farmer_user_id)
     return ClaimListResponse(items=[_to_claim_schema(item) for item in claims], limit=limit, offset=offset)
 
 
@@ -203,9 +214,11 @@ async def list_claims(
 async def get_claim(
     claim_id: int,
     session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ClaimRead:
     service = ClaimService(session)
     claim = await service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     return _to_claim_schema(claim)
 
 
@@ -214,9 +227,11 @@ async def analyze_claim(
     claim_id: int,
     payload: AnalyzeClaimRequest,
     session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> JobAcceptedResponse:
     claim_service = ClaimService(session)
-    await claim_service.get_claim_or_404(claim_id)
+    claim = await claim_service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     jobs = JobService(session)
     job = await jobs.enqueue_analysis(claim_id=claim_id, request=payload)
     return JobAcceptedResponse(job_id=job.id, status=job.status)
@@ -226,9 +241,11 @@ async def analyze_claim(
 async def get_claim_analysis(
     claim_id: int,
     session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ClaimAnalysisResponse:
     claim_service = ClaimService(session)
     claim = await claim_service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     latest_analysis = claim.analysis_runs[0] if claim.analysis_runs else None
     return ClaimAnalysisResponse(claim_id=claim_id, analysis=_to_analysis_schema(latest_analysis))
 
@@ -238,9 +255,11 @@ async def get_claim_analysis_artifacts(
     claim_id: int,
     session: AsyncSession = Depends(db_session_dep),
     redis_client: Redis = Depends(redis_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> AnalysisArtifactsResponse:
     claim_service = ClaimService(session)
     claim = await claim_service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     latest_analysis = claim.analysis_runs[0] if claim.analysis_runs else None
     if latest_analysis is None:
         raise NotFoundError(f"No analysis run found for claim '{claim_id}'.")
@@ -341,9 +360,11 @@ async def trigger_report(
     claim_id: int,
     payload: ReportCreateRequest,
     session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> JobAcceptedResponse:
     claim_service = ClaimService(session)
-    await claim_service.get_claim_or_404(claim_id)
+    claim = await claim_service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     jobs = JobService(session)
     job = await jobs.enqueue_report(claim_id=claim_id, request=payload)
     return JobAcceptedResponse(job_id=job.id, status=job.status)
@@ -354,7 +375,11 @@ async def get_report(
     claim_id: int,
     download: bool = Query(default=False, description="Set true to download PDF directly."),
     session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ReportMetadataResponse | FileResponse:
+    claim_service = ClaimService(session)
+    claim = await claim_service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     report_service = ReportService(session)
     if download:
         pdf_bytes = await report_service.render_report_pdf(claim_id=claim_id)
@@ -378,5 +403,12 @@ async def get_report(
 
 
 @router.post("/{claim_id}/report/download", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
-async def redirect_report_download(claim_id: int) -> Response:
+async def redirect_report_download(
+    claim_id: int,
+    session: AsyncSession = Depends(db_session_dep),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> Response:
+    claim_service = ClaimService(session)
+    claim = await claim_service.get_claim_or_404(claim_id)
+    _assert_claim_access_or_403(claim, current_user)
     return Response(status_code=status.HTTP_307_TEMPORARY_REDIRECT, headers={"Location": f"/api/v1/claims/{claim_id}/report?download=true"})

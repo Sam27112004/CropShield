@@ -12,6 +12,11 @@ import {
   getFarmProfile,
   getFarms,
   getJob,
+  getMarketCommodities,
+  getTrendingCommodities,
+  getWeatherAlerts,
+  getWeatherCurrent,
+  getWeatherForecast,
 } from '@/lib/api';
 import type {
   AdminClaimsResponse,
@@ -23,6 +28,11 @@ import type {
   FarmProfile,
   FarmsListResponse,
   JobStatusResponse,
+  CommoditiesResponse,
+  TrendingCommoditiesResponse,
+  WeatherAlerts,
+  WeatherCurrent,
+  WeatherForecast,
 } from '@/types/api';
 
 interface UseQueryResult<T> {
@@ -82,6 +92,26 @@ function useQuery<T>(fetcher: () => Promise<T>, options?: UseQueryOptions): UseQ
 
 export function useDashboardSummary() {
   return useQuery<DashboardSummary>(getDashboardSummary);
+}
+
+export function useWeatherCurrent(location = 'Unknown') {
+  return useQuery<WeatherCurrent>(() => getWeatherCurrent(location));
+}
+
+export function useWeatherForecast(location = 'Unknown', days = 5) {
+  return useQuery<WeatherForecast>(() => getWeatherForecast(location, days));
+}
+
+export function useWeatherAlerts(location = 'Unknown') {
+  return useQuery<WeatherAlerts>(() => getWeatherAlerts(location));
+}
+
+export function useMarketCommodities() {
+  return useQuery<CommoditiesResponse>(getMarketCommodities);
+}
+
+export function useTrendingCommodities() {
+  return useQuery<TrendingCommoditiesResponse>(getTrendingCommodities);
 }
 
 export function useClaims(params?: { limit?: number; offset?: number }) {

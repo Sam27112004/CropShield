@@ -22,6 +22,14 @@ import type {
   JobStatusResponse,
   FarmerLoginRequest,
   ReportMetadata,
+  WeatherCurrent,
+  WeatherForecast,
+  WeatherAlerts,
+  CommoditiesResponse,
+  TrendingCommoditiesResponse,
+  MandiDataResponse,
+  AdvisoryChatRequest,
+  AdvisoryChatResponse,
 } from '@/types/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
@@ -352,6 +360,40 @@ export async function waitForJobCompletion(
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   return apiFetch<DashboardSummary>('/dashboard/summary');
+}
+
+export async function getWeatherCurrent(location = 'Unknown'): Promise<WeatherCurrent> {
+  const query = new URLSearchParams({ location });
+  return apiFetch<WeatherCurrent>(`/weather/current?${query.toString()}`);
+}
+
+export async function getWeatherForecast(location = 'Unknown', days = 5): Promise<WeatherForecast> {
+  const query = new URLSearchParams({ location, days: String(days) });
+  return apiFetch<WeatherForecast>(`/weather/forecast?${query.toString()}`);
+}
+
+export async function getWeatherAlerts(location = 'Unknown'): Promise<WeatherAlerts> {
+  const query = new URLSearchParams({ location });
+  return apiFetch<WeatherAlerts>(`/weather/alerts?${query.toString()}`);
+}
+
+export async function getMarketCommodities(): Promise<CommoditiesResponse> {
+  return apiFetch<CommoditiesResponse>('/market/commodities');
+}
+
+export async function getTrendingCommodities(): Promise<TrendingCommoditiesResponse> {
+  return apiFetch<TrendingCommoditiesResponse>('/market/trending');
+}
+
+export async function getMandiData(): Promise<MandiDataResponse> {
+  return apiFetch<MandiDataResponse>('/market/mandi-data');
+}
+
+export async function advisoryChat(payload: AdvisoryChatRequest): Promise<AdvisoryChatResponse> {
+  return apiFetch<AdvisoryChatResponse>('/advisory/chat', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getAdminClaims(params?: {

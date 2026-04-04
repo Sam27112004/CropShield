@@ -256,6 +256,82 @@ export interface DashboardSummary {
   average_decision_confidence: number;
 }
 
+export interface WeatherCurrent {
+  location: string;
+  temperature_c: number;
+  condition: string;
+  humidity_percent: number;
+  wind_kph: number;
+  observed_at: string;
+}
+
+export interface WeatherForecastDay {
+  date: string;
+  min_temp_c: number;
+  max_temp_c: number;
+  condition: string;
+}
+
+export interface WeatherForecast {
+  location: string;
+  days: WeatherForecastDay[];
+}
+
+export interface WeatherAlert {
+  title: string;
+  severity: string;
+  description: string;
+}
+
+export interface WeatherAlerts {
+  location: string;
+  alerts: WeatherAlert[];
+}
+
+export interface CommodityPrice {
+  commodity: string;
+  market: string;
+  unit: string;
+  price: number;
+  currency: string;
+}
+
+export interface CommoditiesResponse {
+  items: CommodityPrice[];
+}
+
+export interface TrendingCommodity {
+  commodity: string;
+  change_percent: number;
+}
+
+export interface TrendingCommoditiesResponse {
+  items: TrendingCommodity[];
+}
+
+export interface MandiData {
+  mandi: string;
+  commodity: string;
+  min_price: number;
+  max_price: number;
+  modal_price: number;
+}
+
+export interface MandiDataResponse {
+  items: MandiData[];
+}
+
+export interface AdvisoryChatRequest {
+  message: string;
+  language: string;
+}
+
+export interface AdvisoryChatResponse {
+  provider: string;
+  reply: string;
+  fallback_used: boolean;
+}
+
 export interface AdminClaim {
   claim_id: number;
   farm_profile_id?: number | null;

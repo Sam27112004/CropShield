@@ -1,10 +1,17 @@
 'use client';
 
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { RefreshCw, ShieldCheck, TriangleAlert, Wheat } from 'lucide-react';
 import ErrorBanner from '@/components/ErrorBanner';
-import { useDashboardSummary } from '@/hooks/useApi';
+import { advisoryChat, ApiError } from '@/lib/api';
+import {
+  useDashboardSummary,
+  useMarketCommodities,
+  useTrendingCommodities,
+  useWeatherCurrent,
+} from '@/hooks/useApi';
 
 function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType; loading?: boolean }) {
   const Icon = props.icon;
@@ -32,10 +39,43 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
 
 export default function HomePage() {
   const { data, loading, error, refetch } = useDashboardSummary();
+  const weatherQuery = useWeatherCurrent('Pune');
+  const commoditiesQuery = useMarketCommodities();
+  const trendingQuery = useTrendingCommodities();
+  const [advisoryMessage, setAdvisoryMessage] = useState('What should I monitor for heat stress this week?');
+  const [advisoryReply, setAdvisoryReply] = useState<string | null>(null);
+  const [advisoryError, setAdvisoryError] = useState<string | null>(null);
+  const [advisoryLoading, setAdvisoryLoading] = useState(false);
+
   const totalClaims = data?.total_claims ?? 0;
   const approved = data?.approved_claims ?? 0;
   const avgDamage = data?.average_damage_percentage ?? 0;
   const avgConfidence = data?.average_decision_confidence ?? 0;
+
+  const topCommodity = commoditiesQuery.data?.items?.[0];
+  const topTrending = trendingQuery.data?.items?.[0];
+
+  async function submitAdvisory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = advisoryMessage.trim();
+    if (!trimmed) {
+      setAdvisoryError('Please enter a question before asking for advice.');
+      return;
+    }
+
+    setAdvisoryLoading(true);
+    setAdvisoryError(null);
+    try {
+      const response = await advisoryChat({ message: trimmed, language: 'en' });
+      setAdvisoryReply(response.reply);
+    } catch (err) {
+      const message = err instanceof ApiError ? `${err.status}: ${err.message}` : String(err);
+      setAdvisoryError(message);
+      setAdvisoryReply(null);
+    } finally {
+      setAdvisoryLoading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -97,6 +137,60 @@ export default function HomePage() {
         <p className="text-sm text-foreground-muted leading-relaxed">
           Farmers receive possible crop-damage assessment only. Final insurance amount is decided in admin review with PMFBY guidance.
         </p>
+      </section>
+
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="glass rounded-2xl p-5 border border-primary/10">
+          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Weather Snapshot</p>
+          {weatherQuery.loading ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
+          {weatherQuery.error ? <p className="text-sm text-rose-500">{weatherQuery.error}</p> : null}
+          {weatherQuery.data ? (
+            <div className="space-y-1 text-sm text-foreground-main">
+              <p className="text-lg font-bold">{weatherQuery.data.location}</p>
+              <p>{weatherQuery.data.temperature_c.toFixed(1)}°C • {weatherQuery.data.condition}</p>
+              <p className="text-foreground-muted">Humidity {weatherQuery.data.humidity_percent}% • Wind {weatherQuery.data.wind_kph.toFixed(1)} kph</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="glass rounded-2xl p-5 border border-primary/10">
+          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Market Snapshot</p>
+          {(commoditiesQuery.loading || trendingQuery.loading) ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
+          {commoditiesQuery.error || trendingQuery.error ? (
+            <p className="text-sm text-rose-500">{commoditiesQuery.error ?? trendingQuery.error}</p>
+          ) : null}
+          {topCommodity ? (
+            <p className="text-sm text-foreground-main">
+              <span className="font-semibold">{topCommodity.commodity}</span> in {topCommodity.market}: {topCommodity.currency} {topCommodity.price.toFixed(0)}/{topCommodity.unit}
+            </p>
+          ) : null}
+          {topTrending ? (
+            <p className="mt-2 text-sm text-foreground-muted">
+              Trending: <span className="font-semibold text-foreground-main">{topTrending.commodity}</span> ({topTrending.change_percent.toFixed(1)}%)
+            </p>
+          ) : null}
+        </div>
+
+        <div className="glass rounded-2xl p-5 border border-primary/10">
+          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Advisory Assistant</p>
+          <form onSubmit={submitAdvisory} className="space-y-3">
+            <textarea
+              value={advisoryMessage}
+              onChange={(event) => setAdvisoryMessage(event.target.value)}
+              rows={3}
+              className="w-full rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <button
+              type="submit"
+              disabled={advisoryLoading}
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {advisoryLoading ? 'Asking...' : 'Ask Advisory'}
+            </button>
+          </form>
+          {advisoryError ? <p className="mt-2 text-sm text-rose-500">{advisoryError}</p> : null}
+          {advisoryReply ? <p className="mt-3 text-sm text-foreground-main">{advisoryReply}</p> : null}
+        </div>
       </section>
     </div>
   );

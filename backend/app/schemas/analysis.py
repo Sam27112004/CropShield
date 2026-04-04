@@ -28,6 +28,12 @@ class DecisionRead(BaseModel):
     confidence: float
     rationale: str
     rules_version: str
+    fused_damage: float
+    ndvi_damage: float
+    ndwi_damage: float
+    evi_damage: float
+    ai_damage: float
+    area_score: float
 
 
 class DamageAssessmentRead(BaseModel):

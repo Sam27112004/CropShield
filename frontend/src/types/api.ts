@@ -169,6 +169,12 @@ export interface AnalysisResult {
       confidence: number;
       rationale: string;
       rules_version: string;
+      fused_damage: number;
+      ndvi_damage: number;
+      ndwi_damage: number;
+      evi_damage: number;
+      ai_damage: number;
+      area_score: number;
     } | null;
     farmer_assessment?: {
       possible_damage_percentage: number;

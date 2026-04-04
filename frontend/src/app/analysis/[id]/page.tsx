@@ -29,6 +29,10 @@ function extractAttemptedWindows(reason: string): string[] {
     .filter(Boolean);
 }
 
+function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
 export default function AnalysisDetailPage() {
   const params = useParams<{ id: string }>();
   const claimId = params.id;
@@ -244,6 +248,20 @@ export default function AnalysisDetailPage() {
               <div className="grid md:grid-cols-2 gap-4 text-sm">
                 <p><strong>Decision:</strong> {decision.decision}</p>
                 <p><strong>Confidence:</strong> {(decision.confidence * 100).toFixed(1)}%</p>
+              </div>
+              <div className="mt-4 rounded-xl border border-primary/10 bg-white/60 p-4 text-sm space-y-2">
+                <p className="font-semibold text-foreground-main">Calculation</p>
+                <p className="text-foreground-muted">
+                  Fused Damage = 0.35 × NDVI Damage + 0.15 × NDWI Damage + 0.15 × EVI Damage + 0.20 × AI Damage + 0.15 × Area Score
+                </p>
+                <div className="grid sm:grid-cols-2 gap-2 text-foreground-main">
+                  <p>NDVI Damage: {formatPercent(decision.ndvi_damage)}</p>
+                  <p>NDWI Damage: {formatPercent(decision.ndwi_damage)}</p>
+                  <p>EVI Damage: {formatPercent(decision.evi_damage)}</p>
+                  <p>AI Damage: {formatPercent(decision.ai_damage)}</p>
+                  <p>Area Score: {formatPercent(decision.area_score)}</p>
+                  <p>Fused Damage: {formatPercent(decision.fused_damage)}</p>
+                </div>
               </div>
               <p className="text-sm text-foreground-muted mt-3">{decision.rationale}</p>
             </section>

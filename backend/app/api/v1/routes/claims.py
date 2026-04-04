@@ -100,6 +100,12 @@ def _to_analysis_schema(analysis: AnalysisRun | None) -> AnalysisRunRead | None:
             confidence=float(latest_decision.confidence),
             rationale=latest_decision.rationale,
             rules_version=latest_decision.rules_version,
+            fused_damage=float(latest_decision.fused_damage),
+            ndvi_damage=float(latest_decision.ndvi_damage),
+            ndwi_damage=float(latest_decision.ndwi_damage),
+            evi_damage=float(latest_decision.evi_damage),
+            ai_damage=float(latest_decision.ai_damage),
+            area_score=float(latest_decision.area_score),
         )
     farmer_assessment = None
     if metrics is not None:

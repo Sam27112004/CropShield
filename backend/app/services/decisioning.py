@@ -19,6 +19,12 @@ class DecisionResult:
     decision: str
     confidence: float
     rationale: str
+    fused_damage: float
+    ndvi_damage: float
+    ndwi_damage: float
+    evi_damage: float
+    ai_damage: float
+    area_score: float
 
 
 class DecisionService:
@@ -62,4 +68,14 @@ class DecisionService:
             f"Score={fused_damage:.1f} (NDVI={ndvi_damage:.1f}, NDWI={ndwi_damage:.1f}, EVI={evi_damage:.1f}, "
             f"AI={ai_damage:.1f}, Area={area_score:.1f})."
         )
-        return DecisionResult(decision=decision, confidence=confidence, rationale=rationale)
+        return DecisionResult(
+            decision=decision,
+            confidence=confidence,
+            rationale=rationale,
+            fused_damage=fused_damage,
+            ndvi_damage=ndvi_damage,
+            ndwi_damage=ndwi_damage,
+            evi_damage=evi_damage,
+            ai_damage=ai_damage,
+            area_score=area_score,
+        )

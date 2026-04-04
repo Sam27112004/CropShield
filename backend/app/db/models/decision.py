@@ -23,6 +23,12 @@ class Decision(Base):
     confidence: Mapped[float] = mapped_column(Numeric(8, 5), nullable=False)
     rationale: Mapped[str] = mapped_column(Text, nullable=False)
     rules_version: Mapped[str] = mapped_column(String(80), nullable=False, default="v1-streamlit-compatible")
+    fused_damage: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False, default=0.0)
+    ndvi_damage: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False, default=0.0)
+    ndwi_damage: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False, default=0.0)
+    evi_damage: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False, default=0.0)
+    ai_damage: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False, default=0.0)
+    area_score: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False, default=0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     claim: Mapped["Claim"] = relationship(back_populates="decisions")

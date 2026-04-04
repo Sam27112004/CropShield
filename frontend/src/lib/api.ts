@@ -1,0 +1,354 @@
+import type {
+  AuthLoginRequest,
+  AuthTokenResponse,
+  AdminClaimsResponse,
+  AdminReviewRequest,
+  AnalysisArtifacts,
+  AnalysisResult,
+  AnalyzeResponse,
+  Claim,
+  ClaimsListResponse,
+  CreateClaimRequest,
+  DashboardSummary,
+  FarmerNotesRequest,
+  FarmLookupRequest,
+  FarmOptionsRequest,
+  FarmOptionsResponse,
+  FarmProfile,
+  FarmsListResponse,
+  JobStatusResponse,
+  FarmerLoginRequest,
+  ReportMetadata,
+} from '@/types/api';
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
+const API_PREFIX = '/api/v1';
+
+function getAuthHeader(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+  const token = window.localStorage.getItem('cropshield_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+    public body?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit & { skipAuthRedirect?: boolean } = {},
+): Promise<T> {
+  const url = `${BASE_URL}${API_PREFIX}${path}`;
+  const hasBody = options.body !== undefined && options.body !== null;
+  const { skipAuthRedirect, ...requestOptions } = options;
+
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      ...getAuthHeader(),
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(requestOptions.headers ?? {}),
+    },
+    ...requestOptions,
+  });
+
+  if (!res.ok) {
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch {
+      body = undefined;
+    }
+    if (res.status === 401 && typeof window !== 'undefined' && !skipAuthRedirect) {
+      window.localStorage.removeItem('cropshield_token');
+      window.location.replace('/login');
+    }
+    throw new ApiError(res.status, `API error ${res.status}: ${res.statusText}`, body);
+  }
+
+  const text = await res.text();
+  return text ? (JSON.parse(text) as T) : ({} as T);
+}
+
+export async function createFarmProfile(payload: FarmLookupRequest): Promise<FarmProfile> {
+  return apiFetch<FarmProfile>('/farms/lookup', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function loginAdmin(payload: AuthLoginRequest): Promise<AuthTokenResponse> {
+  return apiFetch<AuthTokenResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    skipAuthRedirect: true,
+  });
+}
+
+export async function loginFarmerWithGoogleCredential(
+  payload: FarmerLoginRequest,
+): Promise<AuthTokenResponse> {
+  return apiFetch<AuthTokenResponse>('/auth/farmer-login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    skipAuthRedirect: true,
+  });
+}
+
+export async function getFarmOptions(params?: FarmOptionsRequest): Promise<FarmOptionsResponse> {
+  const qs = new URLSearchParams();
+  if (params?.state_index !== undefined) qs.set('state_index', String(params.state_index));
+  if (params?.category_index !== undefined) qs.set('category_index', String(params.category_index));
+  if (params?.district_index !== undefined) qs.set('district_index', String(params.district_index));
+  if (params?.taluka_index !== undefined) qs.set('taluka_index', String(params.taluka_index));
+  if (params?.village_index !== undefined) qs.set('village_index', String(params.village_index));
+  qs.set('headless', String(params?.headless ?? true));
+  const query = qs.toString();
+  return apiFetch<FarmOptionsResponse>(`/farms/options${query ? `?${query}` : ''}`);
+}
+
+export async function getFarmProfile(farmId: number | string): Promise<FarmProfile> {
+  return apiFetch<FarmProfile>(`/farms/${farmId}`);
+}
+
+export async function getFarms(params?: { limit?: number; offset?: number }): Promise<FarmsListResponse> {
+  const limit = params?.limit ?? 20;
+  const offset = params?.offset ?? 0;
+  return apiFetch<FarmsListResponse>(`/farms?limit=${limit}&offset=${offset}`);
+}
+
+export async function createClaim(payload: CreateClaimRequest): Promise<Claim> {
+  return apiFetch<Claim>('/claims', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getClaims(params?: { limit?: number; offset?: number }): Promise<ClaimsListResponse> {
+  const limit = params?.limit ?? 20;
+  const offset = params?.offset ?? 0;
+  return apiFetch<ClaimsListResponse>(`/claims?limit=${limit}&offset=${offset}`);
+}
+
+export async function getClaim(claimId: number | string): Promise<Claim> {
+  return apiFetch<Claim>(`/claims/${claimId}`);
+}
+
+export async function analyzeClaim(
+  claimId: number | string,
+  params?: {
+    gap_before?: number;
+    gap_after?: number;
+    window_days?: number;
+    max_cloud_threshold?: number;
+    upscale_factor?: number;
+  },
+): Promise<AnalyzeResponse> {
+  return apiFetch<AnalyzeResponse>(`/claims/${claimId}/analyze`, {
+    method: 'POST',
+    body: JSON.stringify({
+      gap_before: params?.gap_before ?? 5,
+      gap_after: params?.gap_after ?? 5,
+      window_days: params?.window_days ?? 10,
+      max_cloud_threshold: params?.max_cloud_threshold ?? 100,
+      upscale_factor: params?.upscale_factor ?? 3,
+    }),
+  });
+}
+
+export async function submitFarmerNotes(
+  claimId: number | string,
+  payload: FarmerNotesRequest,
+): Promise<Claim> {
+  return apiFetch<Claim>(`/claims/${claimId}/farmer-notes`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAnalysis(claimId: number | string): Promise<AnalysisResult> {
+  return apiFetch<AnalysisResult>(`/claims/${claimId}/analysis`);
+}
+
+export async function getAnalysisArtifacts(claimId: number | string): Promise<AnalysisArtifacts> {
+  return apiFetch<AnalysisArtifacts>(`/claims/${claimId}/analysis/artifacts`);
+}
+
+export async function triggerReport(
+  claimId: number | string,
+  analysisRunId?: number,
+): Promise<AnalyzeResponse> {
+  return apiFetch<AnalyzeResponse>(`/claims/${claimId}/report`, {
+    method: 'POST',
+    body: JSON.stringify({ analysis_run_id: analysisRunId ?? null }),
+  });
+}
+
+export async function getReport(claimId: number | string): Promise<ReportMetadata> {
+  return apiFetch<ReportMetadata>(`/claims/${claimId}/report`);
+}
+
+export function getReportDownloadUrl(claimId: number | string): string {
+  return `${BASE_URL}${API_PREFIX}/claims/${claimId}/report?download=true`;
+}
+
+export async function downloadReportPdf(claimId: number | string): Promise<void> {
+  const url = getReportDownloadUrl(claimId);
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, `API error ${res.status}: ${res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = `cropshield-claim-${claimId}-report.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}
+
+export async function getJob(jobId: string): Promise<JobStatusResponse> {
+  return apiFetch<JobStatusResponse>(`/jobs/${jobId}`);
+}
+
+async function pollJobUntilTerminal(
+  jobId: string,
+  {
+    timeoutMs,
+    pollIntervalMs,
+    onUpdate,
+  }: {
+    timeoutMs: number;
+    pollIntervalMs: number;
+    onUpdate?: (job: JobStatusResponse) => void;
+  },
+): Promise<JobStatusResponse> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const latest = await getJob(jobId);
+    onUpdate?.(latest);
+    if (latest.status === 'completed' || latest.status === 'failed') {
+      return latest;
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+  throw new Error('Analysis timed out');
+}
+
+export async function waitForJobCompletion(
+  jobId: string,
+  options?: {
+    timeoutMs?: number;
+    pollIntervalMs?: number;
+    onUpdate?: (job: JobStatusResponse) => void;
+  },
+): Promise<JobStatusResponse> {
+  const timeoutMs = options?.timeoutMs ?? 10 * 60_000;
+  const pollIntervalMs = options?.pollIntervalMs ?? 2000;
+  const onUpdate = options?.onUpdate;
+
+  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+    return pollJobUntilTerminal(jobId, { timeoutMs, pollIntervalMs, onUpdate });
+  }
+
+  const streamUrl = `${BASE_URL}${API_PREFIX}/jobs/${jobId}/events`;
+
+  try {
+    const result = await new Promise<JobStatusResponse>((resolve, reject) => {
+      let settled = false;
+      const source = new EventSource(streamUrl);
+      const timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        source.close();
+        reject(new Error('Analysis timed out'));
+      }, timeoutMs);
+
+      const finish = (resolver: (value: JobStatusResponse) => void, value: JobStatusResponse) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        source.close();
+        resolver(value);
+      };
+
+      const emit = (job: JobStatusResponse) => {
+        onUpdate?.(job);
+        if (job.status === 'completed' || job.status === 'failed') {
+          finish(resolve, job);
+        }
+      };
+
+      const parseAndEmit = (event: MessageEvent<string>) => {
+        try {
+          emit(JSON.parse(event.data) as JobStatusResponse);
+        } catch {
+          // Ignore malformed SSE payload and continue streaming.
+        }
+      };
+
+      source.addEventListener('snapshot', parseAndEmit as EventListener);
+      source.addEventListener('job', parseAndEmit as EventListener);
+      source.addEventListener('completed', parseAndEmit as EventListener);
+      source.addEventListener('failed', parseAndEmit as EventListener);
+
+      source.onerror = async () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        source.close();
+        try {
+          const fallback = await pollJobUntilTerminal(jobId, { timeoutMs, pollIntervalMs, onUpdate });
+          resolve(fallback);
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
+      };
+    });
+    return result;
+  } catch {
+    return pollJobUntilTerminal(jobId, { timeoutMs, pollIntervalMs, onUpdate });
+  }
+}
+
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  return apiFetch<DashboardSummary>('/dashboard/summary');
+}
+
+export async function getAdminClaims(params?: {
+  limit?: number;
+  offset?: number;
+  admin_status?: string;
+}): Promise<AdminClaimsResponse> {
+  const limit = params?.limit ?? 25;
+  const offset = params?.offset ?? 0;
+  const status = params?.admin_status ? `&admin_status=${encodeURIComponent(params.admin_status)}` : '';
+  return apiFetch<AdminClaimsResponse>(`/admin/claims?limit=${limit}&offset=${offset}${status}`);
+}
+
+export async function reviewAdminClaim(
+  claimId: number | string,
+  payload: AdminReviewRequest,
+) {
+  return apiFetch(`/admin/claims/${claimId}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}

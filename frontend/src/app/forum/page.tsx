@@ -20,9 +20,12 @@ function formatDateTime(value: string): string {
 }
 
 export default function ForumPage() {
+  const pageSize = 8;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'newest' | 'likes'>('newest');
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [repliesByPost, setRepliesByPost] = useState<Record<number, ForumReply[]>>({});
   const [query, setQuery] = useState('');
@@ -36,6 +39,7 @@ export default function ForumPage() {
     try {
       const response = search && search.trim().length > 0 ? await searchForumPosts(search.trim()) : await listForumPosts();
       setPosts(response.items);
+      setPage(1);
       if (response.items.length === 0) {
         setSelectedPostId(null);
       } else if (!response.items.some((item) => item.id === selectedPostId)) {
@@ -114,6 +118,18 @@ export default function ForumPage() {
 
   const selectedPost = posts.find((item) => item.id === selectedPostId) ?? null;
   const selectedReplies = selectedPostId ? repliesByPost[selectedPostId] ?? [] : [];
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (sortBy === 'likes') {
+      if (b.like_count === a.like_count) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return b.like_count - a.like_count;
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+  const pageCount = Math.max(1, Math.ceil(sortedPosts.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paginatedPosts = sortedPosts.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div className="flex flex-col gap-6">
@@ -147,13 +163,37 @@ export default function ForumPage() {
             {loading ? 'Loading...' : 'Search'}
           </button>
         </form>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-foreground-muted">Sort:</span>
+          <button
+            type="button"
+            onClick={() => setSortBy('newest')}
+            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${sortBy === 'newest' ? 'border-primary/40 bg-primary/5 text-foreground-main' : 'border-primary/20 text-foreground-muted hover:bg-primary/5'}`}
+          >
+            Newest
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortBy('likes')}
+            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${sortBy === 'likes' ? 'border-primary/40 bg-primary/5 text-foreground-main' : 'border-primary/20 text-foreground-muted hover:bg-primary/5'}`}
+          >
+            Most Liked
+          </button>
+        </div>
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-5 border border-primary/10 xl:col-span-2">
           <h2 className="text-lg font-bold text-foreground-main mb-4">Posts</h2>
           <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
-            {posts.map((post) => (
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-16 animate-pulse rounded-xl bg-primary/10" />
+                <div className="h-16 animate-pulse rounded-xl bg-primary/10" />
+                <div className="h-16 animate-pulse rounded-xl bg-primary/10" />
+              </div>
+            ) : null}
+            {paginatedPosts.map((post) => (
               <button
                 key={post.id}
                 type="button"
@@ -178,9 +218,30 @@ export default function ForumPage() {
                 </div>
               </button>
             ))}
-            {!loading && posts.length === 0 ? (
+            {!loading && paginatedPosts.length === 0 ? (
               <p className="text-sm text-foreground-dim">No posts found.</p>
             ) : null}
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-xs text-foreground-muted">Page {safePage} of {pageCount}</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={safePage <= 1}
+                className="rounded-xl border border-primary/20 px-3 py-1.5 text-xs font-semibold text-foreground-main disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+                disabled={safePage >= pageCount}
+                className="rounded-xl border border-primary/20 px-3 py-1.5 text-xs font-semibold text-foreground-main disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
 

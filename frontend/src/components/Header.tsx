@@ -5,44 +5,7 @@ import { Bell, Search, User, Grid, Menu } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
-
-interface SearchItem {
-  label: string;
-  href: string;
-}
-
-const ADMIN_SEARCH_ITEMS: SearchItem[] = [
-  { label: 'Dashboard', href: '/' },
-  { label: 'Analysis', href: '/analysis' },
-  { label: 'Claims', href: '/claims' },
-  { label: 'Weather', href: '/weather' },
-  { label: 'Market', href: '/market' },
-  { label: 'Financial', href: '/financial' },
-  { label: 'Advisory', href: '/advisory' },
-  { label: 'Chatbot', href: '/chatbot' },
-  { label: 'Multilingual Chatbot', href: '/multilingual-chatbot' },
-  { label: 'Smart Advisor', href: '/smart-advisor' },
-  { label: 'Crop Predictor', href: '/crop-predictor' },
-  { label: 'Disease', href: '/disease' },
-  { label: 'Forum', href: '/forum' },
-  { label: 'Admin', href: '/admin' },
-  { label: 'Settings', href: '/settings' },
-];
-
-const FARMER_SEARCH_ITEMS: SearchItem[] = [
-  { label: 'Farmer Requests', href: '/farmer/requests' },
-  { label: 'Weather', href: '/weather' },
-  { label: 'Market', href: '/market' },
-  { label: 'Financial', href: '/financial' },
-  { label: 'Advisory', href: '/advisory' },
-  { label: 'Chatbot', href: '/chatbot' },
-  { label: 'Multilingual Chatbot', href: '/multilingual-chatbot' },
-  { label: 'Smart Advisor', href: '/smart-advisor' },
-  { label: 'Crop Predictor', href: '/crop-predictor' },
-  { label: 'Disease', href: '/disease' },
-  { label: 'Forum', href: '/forum' },
-  { label: 'Settings', href: '/settings' },
-];
+import { getRoleNavItems } from '@/lib/navigation';
 
 export const Header = () => {
   const router = useRouter();
@@ -54,7 +17,7 @@ export const Header = () => {
 
   const name = user?.name ?? 'User';
   const roleLabel = user?.role === 'farmer' ? 'Farmer' : 'Claims Auditor';
-  const searchItems = user?.role === 'farmer' ? FARMER_SEARCH_ITEMS : ADMIN_SEARCH_ITEMS;
+  const searchItems = getRoleNavItems(user?.role);
 
   const filteredItems = useMemo(() => {
     const query = searchText.trim().toLowerCase();

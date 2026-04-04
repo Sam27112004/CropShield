@@ -6,21 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useAuth } from '@/context/AuthContext';
-
-const FARMER_ALLOWED_PREFIXES = [
-  '/farmer',
-  '/weather',
-  '/market',
-  '/financial',
-  '/advisory',
-  '/chatbot',
-  '/multilingual-chatbot',
-  '/smart-advisor',
-  '/crop-predictor',
-  '/disease',
-  '/forum',
-  '/settings',
-];
+import { FARMER_ALLOWED_PREFIXES } from '@/lib/navigation';
 
 function LoadingScreen() {
   return (

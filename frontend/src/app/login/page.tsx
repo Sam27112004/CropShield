@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [adminFieldErrors, setAdminFieldErrors] = useState<{ username?: string; password?: string }>({});
   const [message, setMessage] = useState<string | null>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
@@ -92,6 +93,17 @@ export default function LoginPage() {
   const handleAdminSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    const nextErrors: { username?: string; password?: string } = {};
+    if (!adminUsername.trim()) {
+      nextErrors.username = 'Username is required.';
+    }
+    if (!adminPassword.trim()) {
+      nextErrors.password = 'Password is required.';
+    }
+    setAdminFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
     const result = await loginAdmin(adminUsername, adminPassword);
     if (!result.success) {
       setMessage(result.message ?? 'Admin login failed.');
@@ -145,17 +157,29 @@ export default function LoginPage() {
                 <input
                   type="text"
                   value={adminUsername}
-                  onChange={(e) => setAdminUsername(e.target.value)}
+                  onChange={(e) => {
+                    setAdminUsername(e.target.value);
+                    setAdminFieldErrors((prev) => ({ ...prev, username: undefined }));
+                  }}
                   placeholder="Username"
                   className="w-full rounded-xl border border-primary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
                 />
+                {adminFieldErrors.username ? (
+                  <p className="text-xs text-red-700">{adminFieldErrors.username}</p>
+                ) : null}
                 <input
                   type="password"
                   value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onChange={(e) => {
+                    setAdminPassword(e.target.value);
+                    setAdminFieldErrors((prev) => ({ ...prev, password: undefined }));
+                  }}
                   placeholder="Password"
                   className="w-full rounded-xl border border-primary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
                 />
+                {adminFieldErrors.password ? (
+                  <p className="text-xs text-red-700">{adminFieldErrors.password}</p>
+                ) : null}
                 <button type="submit" className="btn-premium w-full">
                   Login as Admin
                 </button>

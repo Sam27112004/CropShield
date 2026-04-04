@@ -53,16 +53,35 @@ async function apiFetch<T>(
   const url = `${BASE_URL}${API_PREFIX}${path}`;
   const hasBody = options.body !== undefined && options.body !== null;
   const { skipAuthRedirect, ...requestOptions } = options;
+  const timeoutMs = 30_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      ...getAuthHeader(),
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-      ...(requestOptions.headers ?? {}),
-    },
-    ...requestOptions,
-  });
+  // Preserve caller-provided abort semantics while enforcing a request timeout.
+  if (requestOptions.signal) {
+    requestOptions.signal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        ...getAuthHeader(),
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...(requestOptions.headers ?? {}),
+      },
+      ...requestOptions,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError(408, 'Request timed out after 30 seconds');
+    }
+    throw error;
+  }
+  clearTimeout(timeoutId);
 
   if (!res.ok) {
     let body: unknown;

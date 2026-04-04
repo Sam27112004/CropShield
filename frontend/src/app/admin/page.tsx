@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Download, RefreshCw, Send } from 'lucide-react';
+import ErrorBanner from '@/components/ErrorBanner';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
 import {
   bulkReviewAdminClaims,
@@ -89,6 +90,7 @@ export default function AdminClaimsPage() {
   const [bulkNotes, setBulkNotes] = useState('');
   const [bulkAmount, setBulkAmount] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkFieldErrors, setBulkFieldErrors] = useState<{ selected?: string; reviewedBy?: string }>({});
 
   const claims = data?.items ?? [];
   const totalCount = data?.total_count ?? 0;
@@ -168,12 +170,16 @@ export default function AdminClaimsPage() {
   };
 
   const runBulkAction = async (action: 'approved' | 'rejected') => {
+    const nextErrors: { selected?: string; reviewedBy?: string } = {};
     if (selectedIds.length === 0) {
-      setMessage('Select at least one claim for bulk action.');
-      return;
+      nextErrors.selected = 'Select at least one claim.';
     }
     if (!bulkReviewedBy.trim()) {
-      setMessage('Reviewer name is required for bulk review.');
+      nextErrors.reviewedBy = 'Reviewer name is required.';
+    }
+    setBulkFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setMessage(null);
       return;
     }
 
@@ -283,7 +289,10 @@ export default function AdminClaimsPage() {
           className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
           placeholder="Reviewer name"
           value={bulkReviewedBy}
-          onChange={(e) => setBulkReviewedBy(e.target.value)}
+          onChange={(e) => {
+            setBulkReviewedBy(e.target.value);
+            setBulkFieldErrors((prev) => ({ ...prev, reviewedBy: undefined }));
+          }}
         />
         <input
           className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
@@ -315,10 +324,12 @@ export default function AdminClaimsPage() {
             Reject Selected
           </button>
         </div>
+        {bulkFieldErrors.selected ? <p className="text-xs text-red-700">{bulkFieldErrors.selected}</p> : null}
+        {bulkFieldErrors.reviewedBy ? <p className="text-xs text-red-700">{bulkFieldErrors.reviewedBy}</p> : null}
       </section>
 
-      {error ? <div className="glass rounded-xl p-4 border border-red-300/60 text-red-700 text-sm">{error}</div> : null}
-      {message ? <div className="glass rounded-xl p-4 border border-primary/20 text-foreground-main text-sm">{message}</div> : null}
+      {error ? <ErrorBanner message={error} onRetry={refetch} /> : null}
+      {message ? <ErrorBanner message={message} /> : null}
 
       <section className="glass rounded-2xl overflow-hidden border border-primary/10">
         <div className="overflow-x-auto">

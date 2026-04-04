@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import OfflineBanner from '@/components/OfflineBanner';
 import { useAuth } from '@/context/AuthContext';
 
 function LoadingScreen() {
@@ -53,6 +54,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col flex-1 min-w-0 lg:ml-[316px]">
         <Header />
         <main className="flex-1 px-4 pt-20 pb-8 md:px-6 lg:px-10 lg:pt-[116px]">
+          <OfflineBanner />
           {children}
         </main>
       </div>

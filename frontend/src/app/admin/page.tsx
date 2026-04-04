@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Download, RefreshCw, Send } from 'lucide-react';
 import ErrorBanner from '@/components/ErrorBanner';
@@ -93,7 +94,7 @@ export default function AdminClaimsPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkFieldErrors, setBulkFieldErrors] = useState<{ selected?: string; reviewedBy?: string }>({});
 
-  const claims = data?.items ?? [];
+  const claims = useMemo(() => data?.items ?? [], [data?.items]);
   const totalCount = data?.total_count ?? 0;
   const hasPrev = page > 1;
   const hasNext = offset + claims.length < totalCount;
@@ -489,7 +490,15 @@ export default function AdminClaimsPage() {
                                       artifacts.evi_before_data_url,
                                       artifacts.evi_after_data_url,
                                     ].map((src, index) => (
-                                      <img key={`${claim.claim_id}-${index}`} src={src} alt={`Artifact ${index + 1}`} loading="lazy" className="rounded-lg border border-primary/10" />
+                                      <Image
+                                        key={`${claim.claim_id}-${index}`}
+                                        src={src}
+                                        alt={`Artifact ${index + 1}`}
+                                        width={320}
+                                        height={220}
+                                        unoptimized
+                                        className="h-auto w-full rounded-lg border border-primary/10"
+                                      />
                                     ))}
                                   </div>
                                 ) : (

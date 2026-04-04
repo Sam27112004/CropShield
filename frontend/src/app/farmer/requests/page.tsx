@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AlertTriangle, CheckCircle2, ChevronLeft, ExternalLink, Loader2, Lock, MapPinned, RefreshCw, Satellite, ShieldCheck, XCircle } from 'lucide-react';
 import ErrorBanner from '@/components/ErrorBanner';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
@@ -1017,7 +1018,14 @@ export default function FarmerRequestsPage() {
               {farm.screenshot_data_url ? (
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-foreground-main mb-2">Automation Screenshot</p>
-                  <img src={farm.screenshot_data_url} alt="Land record automation output" className="rounded-xl border border-primary/10" />
+                  <Image
+                    src={farm.screenshot_data_url}
+                    alt="Land record automation output"
+                    width={1280}
+                    height={720}
+                    unoptimized
+                    className="h-auto w-full rounded-xl border border-primary/10"
+                  />
                 </div>
               ) : null}
 

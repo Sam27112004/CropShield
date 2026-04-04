@@ -1,0 +1,30 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: "Inter", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+}
+
+* {
+  @apply m-0 p-0 border-border-glass;
+}
+
+body {
+  @apply font-inter bg-background-deep text-foreground-main;
+}
+
+.glass {
+  @apply bg-background-card backdrop-blur-md border border-border-glass transition-all duration-300;
+}
+
+.glass:hover {
+  @apply bg-background-cardHover border-border-active shadow-premium;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent;
+}

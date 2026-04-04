@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog, MessageSquare, CloudSun, TrendingUp, Bot, ScanSearch, Sprout, Wallet, Languages, Sparkles } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog, MessageSquare, CloudSun, TrendingUp, Bot, ScanSearch, Sprout, Wallet, Languages, Sparkles, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -9,8 +9,9 @@ import { useSidebar } from '@/context/SidebarContext';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: FileText, label: 'Farmer Requests', href: '/farmer/requests' },
   { icon: BarChart3, label: 'Analysis', href: '/analysis' },
+  { icon: ClipboardList, label: 'Claims', href: '/claims' },
+  { icon: FileText, label: 'Farmer Requests', href: '/farmer/requests' },
   { icon: CloudSun, label: 'Weather', href: '/weather' },
   { icon: TrendingUp, label: 'Market', href: '/market' },
   { icon: Wallet, label: 'Financial', href: '/financial' },
@@ -46,6 +47,27 @@ export const Sidebar = () => {
   const { logout, user } = useAuth();
   const { isOpen, close } = useSidebar();
   const activeNavItems = user?.role === 'farmer' ? farmerNavItems : navItems.filter((item) => item.href !== '/farmer/requests');
+
+  useEffect(() => {
+    const body = document.body;
+    if (isOpen) {
+      body.classList.add('overflow-hidden');
+    } else {
+      body.classList.remove('overflow-hidden');
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        close();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      body.classList.remove('overflow-hidden');
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [close, isOpen]);
 
   const handleLogout = () => {
     logout();
@@ -96,7 +118,9 @@ export const Sidebar = () => {
         <nav className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-1">
           {activeNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = item.href === '/'
+              ? pathname === '/'
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link

@@ -19,6 +19,7 @@ os.environ["REDIS_URL"] = "redis://unused:6379/0"
 os.environ["CELERY_BROKER_URL"] = "memory://"
 os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
 os.environ["ENABLE_EARTH_ENGINE"] = "false"
+os.environ["ALLOW_DEMO_SATELLITE_FALLBACK"] = "true"
 os.environ["REPORT_ARTIFACTS_DIR"] = str((Path(__file__).resolve().parents[2] / "data" / "artifacts").as_posix())
 os.environ["JWT_SECRET"] = "test-secret"
 os.environ["JWT_ALGORITHM"] = "HS256"
@@ -63,14 +64,20 @@ class DummyRedis:
 @pytest_asyncio.fixture(scope="session")
 async def engine():
     if TEST_DB_PATH.exists():
-        TEST_DB_PATH.unlink()
+        try:
+            TEST_DB_PATH.unlink()
+        except PermissionError:
+            pass
     async_engine = create_async_engine(os.environ["DATABASE_URL"], future=True)
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield async_engine
     await async_engine.dispose()
     if TEST_DB_PATH.exists():
-        TEST_DB_PATH.unlink()
+        try:
+            TEST_DB_PATH.unlink()
+        except PermissionError:
+            pass
 
 
 @pytest_asyncio.fixture

@@ -10,6 +10,31 @@ export type ClaimStatus =
 
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
+export interface AuthLoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface FarmerLoginRequest {
+  id_token: string;
+}
+
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface AuthUserClaims {
+  sub: string;
+  role: 'admin' | 'farmer';
+  farmer_id?: number | null;
+  name?: string | null;
+  email?: string | null;
+  picture?: string | null;
+  exp?: number;
+  iat?: number;
+}
+
 export interface FarmLookupRequest {
   farmer_name: string;
   state_index: number;

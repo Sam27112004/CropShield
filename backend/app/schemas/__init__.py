@@ -7,6 +7,7 @@ from app.schemas.analysis import (
     DecisionRead,
     IndexMetricsRead,
 )
+from app.schemas.auth import AdminLoginRequest, AuthTokenResponse, AuthenticatedUser, FarmerLoginRequest
 from app.schemas.admin import AdminClaimItem, AdminClaimListResponse, AdminClaimReviewRequest, AdminClaimReviewResponse
 from app.schemas.claim import AnalyzeClaimRequest, ClaimCreateRequest, ClaimListResponse, ClaimRead, JobAcceptedResponse
 from app.schemas.dashboard import DashboardSummaryResponse
@@ -26,11 +27,15 @@ __all__ = [
     "AdminClaimListResponse",
     "AdminClaimReviewRequest",
     "AdminClaimReviewResponse",
+    "AdminLoginRequest",
+    "AuthTokenResponse",
+    "AuthenticatedUser",
     "AnalyzeClaimRequest",
     "ClaimCreateRequest",
     "ClaimListResponse",
     "ClaimRead",
     "JobAcceptedResponse",
+    "FarmerLoginRequest",
     "FarmLookupRequest",
     "FarmProfileListResponse",
     "FarmProfileRead",

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ApiError, loginAdmin as loginAdminApi, loginFarmerWithGoogleCredential as loginFarmerApi } from '@/lib/api';
+import type { AuthUserClaims } from '@/types/api';
 
 export type UserRole = 'admin' | 'farmer';
 
@@ -14,25 +16,42 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  loginAdmin: (username: string, password: string) => { success: boolean; message?: string };
-  loginFarmerWithGoogleCredential: (credential: string) => { success: boolean; message?: string };
+  loginAdmin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  loginFarmerWithGoogleCredential: (credential: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
 }
 
-const AUTH_STORAGE_KEY = 'cropshield_auth_v1';
+const TOKEN_STORAGE_KEY = 'cropshield_token';
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
+function decodeJwtPayload(token: string): AuthUserClaims | null {
   try {
     const parts = token.split('.');
     if (parts.length < 2) return null;
     const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
     const json = atob(padded);
-    return JSON.parse(json) as Record<string, unknown>;
+    return JSON.parse(json) as AuthUserClaims;
   } catch {
     return null;
   }
+}
+
+function buildUserFromClaims(payload: AuthUserClaims | null): AuthUser | null {
+  if (!payload?.role || !payload.sub) {
+    return null;
+  }
+
+  const role = payload.role === 'farmer' ? 'farmer' : 'admin';
+  const name = payload.name?.trim() || (role === 'admin' ? 'Admin' : payload.sub);
+  const email = payload.email?.trim() || (role === 'farmer' ? payload.sub : undefined);
+
+  return {
+    role,
+    name,
+    email,
+    picture: payload.picture ?? undefined,
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -41,15 +60,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as AuthUser;
-        if (parsed?.role && parsed?.name) {
-          setUser(parsed);
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (token) {
+        const nextUser = buildUserFromClaims(decodeJwtPayload(token));
+        if (nextUser) {
+          setUser(nextUser);
+        } else {
+          localStorage.removeItem(TOKEN_STORAGE_KEY);
         }
       }
     } catch {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
     } finally {
       setIsLoading(false);
     }
@@ -57,46 +78,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const persist = useCallback((nextUser: AuthUser | null) => {
     setUser(nextUser);
-    if (nextUser) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
   }, []);
 
-  const loginAdmin = useCallback((username: string, password: string) => {
-    if (username.trim() === 'admin' && password === 'admin') {
-      persist({ role: 'admin', name: 'Admin' });
+  const loginAdmin = useCallback(async (username: string, password: string) => {
+    try {
+      const response = await loginAdminApi({ username, password });
+      localStorage.setItem(TOKEN_STORAGE_KEY, response.access_token);
+      persist(buildUserFromClaims(decodeJwtPayload(response.access_token)));
       return { success: true };
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Invalid admin credentials.';
+      return { success: false, message };
     }
-    return { success: false, message: 'Invalid admin credentials. Use admin / admin.' };
   }, [persist]);
 
-  const loginFarmerWithGoogleCredential = useCallback((credential: string) => {
-    const payload = decodeJwtPayload(credential);
-    if (!payload) {
-      return { success: false, message: 'Unable to read Google credential.' };
+  const loginFarmerWithGoogleCredential = useCallback(async (credential: string) => {
+    try {
+      const response = await loginFarmerApi({ id_token: credential });
+      localStorage.setItem(TOKEN_STORAGE_KEY, response.access_token);
+      persist(buildUserFromClaims(decodeJwtPayload(response.access_token)));
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Google login failed.';
+      return { success: false, message };
     }
-
-    const email = typeof payload.email === 'string' ? payload.email : '';
-    const name = typeof payload.name === 'string' ? payload.name : 'Farmer';
-    const picture = typeof payload.picture === 'string' ? payload.picture : undefined;
-
-    if (!email) {
-      return { success: false, message: 'Google account email is required.' };
-    }
-
-    persist({ role: 'farmer', name, email, picture });
-    return { success: true };
   }, [persist]);
 
   const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     persist(null);
   }, [persist]);
 
   const value = useMemo<AuthContextType>(
     () => ({ user, isLoading, loginAdmin, loginFarmerWithGoogleCredential, logout }),
-    [user, isLoading, loginAdmin, loginFarmerWithGoogleCredential, logout]
+    [user, isLoading, loginAdmin, loginFarmerWithGoogleCredential, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

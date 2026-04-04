@@ -52,10 +52,12 @@ export default function LoginPage() {
       window.google.accounts.id.initialize({
         client_id: googleClientId,
         callback: (response) => {
-          const result = loginFarmerWithGoogleCredential(response.credential);
-          if (!result.success) {
-            setMessage(result.message ?? 'Google login failed.');
-          }
+          void (async () => {
+            const result = await loginFarmerWithGoogleCredential(response.credential);
+            if (!result.success) {
+              setMessage(result.message ?? 'Google login failed.');
+            }
+          })();
         },
       });
       window.google.accounts.id.renderButton(buttonContainer, {
@@ -87,10 +89,10 @@ export default function LoginPage() {
       : 'Farmer login using Google account.';
   }, [activeTab]);
 
-  const handleAdminSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleAdminSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
-    const result = loginAdmin(adminUsername, adminPassword);
+    const result = await loginAdmin(adminUsername, adminPassword);
     if (!result.success) {
       setMessage(result.message ?? 'Admin login failed.');
     }
@@ -102,7 +104,7 @@ export default function LoginPage() {
         <section className="glass rounded-2xl border border-primary/10 p-8">
           <h1 className="text-3xl font-bold gradient-text mb-2">CropShield AI Access</h1>
           <p className="text-sm text-foreground-muted mb-6">
-            Sign in to continue. Admin uses hardcoded credentials, farmers use Google authentication.
+            Sign in to continue. Admin and farmer access are verified by the backend.
           </p>
 
           <div className="inline-flex rounded-xl border border-primary/20 bg-white/70 p-1 mb-6">
@@ -189,7 +191,7 @@ export default function LoginPage() {
             </ul>
           </div>
           <p className="text-xs text-foreground-dim mt-8">
-            Security note: admin credentials are hardcoded for prototype use only.
+            Security note: authentication now runs through the backend and stores a JWT in the browser.
           </p>
         </section>
       </div>

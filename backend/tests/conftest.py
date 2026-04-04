@@ -19,6 +19,11 @@ os.environ["CELERY_BROKER_URL"] = "memory://"
 os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
 os.environ["ENABLE_EARTH_ENGINE"] = "false"
 os.environ["REPORT_ARTIFACTS_DIR"] = str((Path(__file__).resolve().parents[2] / "data" / "artifacts").as_posix())
+os.environ["JWT_SECRET"] = "test-secret"
+os.environ["JWT_ALGORITHM"] = "HS256"
+os.environ["ADMIN_USERNAME"] = "admin"
+os.environ["ADMIN_PASSWORD"] = "admin"
+os.environ["GOOGLE_CLIENT_ID"] = "test-client-id.apps.googleusercontent.com"
 
 from app.api.deps import db_session_dep, redis_dep  # noqa: E402
 from app.db.base import Base  # noqa: E402

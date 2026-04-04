@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     dashboard_cache_ttl_seconds: int = 120
     report_metadata_cache_ttl_seconds: int = 300
 
+    jwt_secret: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    admin_username: str = "admin"
+    admin_password: str = "admin"
+    google_client_id: str | None = None
+
     earth_engine_project: str | None = None
     enable_earth_engine: bool = True
     allow_demo_satellite_fallback: bool = False

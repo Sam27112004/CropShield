@@ -8,7 +8,13 @@ from app.schemas.analysis import (
     IndexMetricsRead,
 )
 from app.schemas.auth import AdminLoginRequest, AuthTokenResponse, AuthenticatedUser, FarmerLoginRequest
-from app.schemas.admin import AdminClaimItem, AdminClaimListResponse, AdminClaimReviewRequest, AdminClaimReviewResponse
+from app.schemas.admin import (
+    AdminCacheInvalidateResponse,
+    AdminClaimItem,
+    AdminClaimListResponse,
+    AdminClaimReviewRequest,
+    AdminClaimReviewResponse,
+)
 from app.schemas.claim import AnalyzeClaimRequest, ClaimCreateRequest, ClaimListResponse, ClaimRead, JobAcceptedResponse
 from app.schemas.dashboard import DashboardSummaryResponse
 from app.schemas.farm import FarmLookupRequest, FarmProfileListResponse, FarmProfileRead
@@ -27,6 +33,7 @@ __all__ = [
     "AdminClaimListResponse",
     "AdminClaimReviewRequest",
     "AdminClaimReviewResponse",
+    "AdminCacheInvalidateResponse",
     "AdminLoginRequest",
     "AuthTokenResponse",
     "AuthenticatedUser",

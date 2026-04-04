@@ -322,3 +322,20 @@ export interface AdminBulkReviewRequest {
 export interface AdminBulkReviewResponse {
   updated_claim_ids: number[];
 }
+
+export interface HealthStatusResponse {
+  status: string;
+  service: string;
+  timestamp: string;
+}
+
+export interface ReadinessStatusResponse {
+  status: string;
+  database: string;
+  redis: string;
+}
+
+export interface AdminCacheInvalidateResponse {
+  status: string;
+  cache_key: string;
+}

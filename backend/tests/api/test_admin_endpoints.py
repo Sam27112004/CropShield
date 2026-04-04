@@ -76,3 +76,12 @@ async def test_admin_full_and_bulk_review_creates_audit_log(client, admin_header
     assert body["claim"]["admin_status"] == "approved"
     assert len(body["audit_logs"]) >= 1
     assert body["audit_logs"][0]["new_status"] == "approved"
+
+
+@pytest.mark.asyncio
+async def test_admin_cache_invalidate_endpoint(client, admin_headers) -> None:
+    response = await client.post("/api/v1/admin/cache/invalidate", headers=admin_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["cache_key"] == "dashboard:summary:v1"

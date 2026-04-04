@@ -1,6 +1,7 @@
 import type {
   AuthLoginRequest,
   AuthTokenResponse,
+  AdminCacheInvalidateResponse,
   AdminClaimsResponse,
   AdminClaimFullResponse,
   AdminBulkReviewRequest,
@@ -20,6 +21,8 @@ import type {
   FarmProfile,
   FarmsListResponse,
   JobStatusResponse,
+  HealthStatusResponse,
+  ReadinessStatusResponse,
   FarmerLoginRequest,
   ReportMetadata,
 } from '@/types/api';
@@ -335,6 +338,14 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return apiFetch<DashboardSummary>('/dashboard/summary');
 }
 
+export async function getHealthStatus(): Promise<HealthStatusResponse> {
+  return apiFetch<HealthStatusResponse>('/health');
+}
+
+export async function getReadinessStatus(): Promise<ReadinessStatusResponse> {
+  return apiFetch<ReadinessStatusResponse>('/ready');
+}
+
 export async function getAdminClaims(params?: {
   limit?: number;
   offset?: number;
@@ -404,4 +415,10 @@ export async function downloadAdminReportPdf(claimId: number | string): Promise<
   anchor.click();
   anchor.remove();
   window.URL.revokeObjectURL(objectUrl);
+}
+
+export async function invalidateAdminCache(): Promise<AdminCacheInvalidateResponse> {
+  return apiFetch<AdminCacheInvalidateResponse>('/admin/cache/invalidate', {
+    method: 'POST',
+  });
 }

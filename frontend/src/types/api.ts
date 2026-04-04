@@ -321,6 +321,14 @@ export interface MandiDataResponse {
   items: MandiData[];
 }
 
+export interface FinancialSummaryResponse {
+  estimated_revenue_inr: number;
+  estimated_cost_inr: number;
+  estimated_profit_inr: number;
+  margin_percent: number;
+  recommendation: string;
+}
+
 export interface AdvisoryChatRequest {
   message: string;
   language: string;
@@ -330,6 +338,19 @@ export interface AdvisoryChatResponse {
   provider: string;
   reply: string;
   fallback_used: boolean;
+}
+
+export interface CropPredictRequest {
+  crop_type: string;
+  soil_type: string;
+  rainfall_mm: number;
+  temperature_c: number;
+}
+
+export interface CropPredictResponse {
+  expected_yield_tph: number;
+  risk_level: string;
+  recommendation: string;
 }
 
 export interface DiseaseDetectRequest {

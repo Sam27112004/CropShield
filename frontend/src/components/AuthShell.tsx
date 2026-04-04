@@ -7,7 +7,17 @@ import { Header } from '@/components/Header';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useAuth } from '@/context/AuthContext';
 
-const FARMER_ALLOWED_PREFIXES = ['/farmer', '/weather', '/market', '/advisory', '/disease', '/forum', '/settings'];
+const FARMER_ALLOWED_PREFIXES = [
+  '/farmer',
+  '/weather',
+  '/market',
+  '/financial',
+  '/advisory',
+  '/crop-predictor',
+  '/disease',
+  '/forum',
+  '/settings',
+];
 
 function LoadingScreen() {
   return (

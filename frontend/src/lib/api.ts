@@ -39,6 +39,9 @@ import type {
   ForumSearchResponse,
   DiseaseDetectRequest,
   DiseaseDetectResponse,
+  CropPredictRequest,
+  CropPredictResponse,
+  FinancialSummaryResponse,
 } from '@/types/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
@@ -398,8 +401,19 @@ export async function getMandiData(): Promise<MandiDataResponse> {
   return apiFetch<MandiDataResponse>('/market/mandi-data');
 }
 
+export async function getFinancialSummary(): Promise<FinancialSummaryResponse> {
+  return apiFetch<FinancialSummaryResponse>('/market/financial-summary');
+}
+
 export async function advisoryChat(payload: AdvisoryChatRequest): Promise<AdvisoryChatResponse> {
   return apiFetch<AdvisoryChatResponse>('/advisory/chat', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function cropPredict(payload: CropPredictRequest): Promise<CropPredictResponse> {
+  return apiFetch<CropPredictResponse>('/advisory/crop-predict', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

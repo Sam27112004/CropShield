@@ -19,7 +19,9 @@ import {
   getWeatherCurrent,
   getWeatherForecast,
   advisoryChat,
+  cropPredict,
   detectDisease,
+  getFinancialSummary,
 } from '@/lib/api';
 import type {
   AdminClaimsResponse,
@@ -40,6 +42,9 @@ import type {
   AdvisoryChatResponse,
   DiseaseDetectRequest,
   DiseaseDetectResponse,
+  CropPredictRequest,
+  CropPredictResponse,
+  FinancialSummaryResponse,
 } from '@/types/api';
 
 interface UseQueryResult<T> {
@@ -125,8 +130,16 @@ export function useMandiData() {
   return useQuery<MandiDataResponse>(getMandiData);
 }
 
+export function useFinancialSummary() {
+  return useQuery<FinancialSummaryResponse>(getFinancialSummary);
+}
+
 export function useAdvisoryChat(payload: { message: string; language: string }, enabled = false) {
   return useQuery<AdvisoryChatResponse>(() => advisoryChat(payload), { enabled });
+}
+
+export function useCropPredict(payload: CropPredictRequest, enabled = false) {
+  return useQuery<CropPredictResponse>(() => cropPredict(payload), { enabled });
 }
 
 export function useDiseaseDetect(payload: DiseaseDetectRequest, enabled = false) {

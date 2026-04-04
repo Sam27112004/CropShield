@@ -54,6 +54,16 @@ async def test_forum_routes_create_and_search_posts(client, farmer_headers) -> N
 
 
 @pytest.mark.asyncio
+async def test_forum_reply_to_missing_post_returns_404(client, farmer_headers) -> None:
+    reply_resp = await client.post(
+        "/api/v1/forum/posts/999999/replies",
+        json={"content": "Any updates?"},
+        headers=farmer_headers,
+    )
+    assert reply_resp.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_new_phase2_routes_require_auth(client) -> None:
     weather_resp = await client.get("/api/v1/weather/current")
     market_resp = await client.get("/api/v1/market/commodities")

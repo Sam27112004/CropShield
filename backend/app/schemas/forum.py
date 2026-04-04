@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ForumPostCreateRequest(BaseModel):
@@ -15,6 +15,8 @@ class ForumReplyCreateRequest(BaseModel):
 
 
 class ForumPostResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     content: str
@@ -28,6 +30,8 @@ class ForumPostListResponse(BaseModel):
 
 
 class ForumReplyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     post_id: int
     content: str

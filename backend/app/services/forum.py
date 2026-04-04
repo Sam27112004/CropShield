@@ -1,61 +1,49 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.repositories.forum import ForumRepository
 
 
 class ForumServiceAdapter:
-    _posts: list[dict[str, object]] = []
-    _replies_by_post: dict[int, list[dict[str, object]]] = {}
-    _post_seq: int = 0
-    _reply_seq: int = 0
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+        self.repo = ForumRepository(session)
 
     async def list_posts(self) -> dict[str, object]:
-        sorted_posts = sorted(self._posts, key=lambda item: item["created_at"], reverse=True)
-        return {"items": sorted_posts}
+        posts = await self.repo.list_posts()
+        return {"items": posts}
 
     async def create_post(self, *, title: str, content: str, author: str) -> dict[str, object]:
-        self.__class__._post_seq += 1
-        post = {
-            "id": self._post_seq,
-            "title": title,
-            "content": content,
-            "author": author,
-            "like_count": 0,
-            "created_at": datetime.now(tz=timezone.utc),
-        }
-        self._posts.append(post)
-        self._replies_by_post.setdefault(post["id"], [])
+        post = await self.repo.create_post(title=title, content=content, author=author)
+        await self.session.commit()
+        await self.session.refresh(post)
         return post
 
     async def list_replies(self, *, post_id: int) -> dict[str, object]:
-        return {"items": list(self._replies_by_post.get(post_id, []))}
+        replies = await self.repo.list_replies(post_id=post_id)
+        return {"items": replies}
 
     async def create_reply(self, *, post_id: int, content: str, author: str) -> dict[str, object]:
-        self.__class__._reply_seq += 1
-        reply = {
-            "id": self._reply_seq,
-            "post_id": post_id,
-            "content": content,
-            "author": author,
-            "created_at": datetime.now(tz=timezone.utc),
-        }
-        self._replies_by_post.setdefault(post_id, []).append(reply)
+        post = await self.repo.get_post(post_id)
+        if post is None:
+            raise ValueError("Forum post not found")
+        reply = await self.repo.create_reply(post_id=post_id, content=content, author=author)
+        await self.session.commit()
+        await self.session.refresh(reply)
         return reply
 
     async def like_post(self, *, post_id: int) -> dict[str, object] | None:
-        for post in self._posts:
-            if post["id"] == post_id:
-                post["like_count"] = int(post["like_count"]) + 1
-                return post
-        return None
+        post = await self.repo.get_post(post_id)
+        if post is None:
+            return None
+        updated_post = await self.repo.increment_like(post=post)
+        await self.session.commit()
+        await self.session.refresh(updated_post)
+        return updated_post
 
     async def search_posts(self, *, query: str) -> dict[str, object]:
-        needle = query.lower().strip()
-        if not needle:
+        if not query.strip():
             return {"query": query, "items": []}
-        matches = [
-            post
-            for post in self._posts
-            if needle in str(post["title"]).lower() or needle in str(post["content"]).lower()
-        ]
+        matches = await self.repo.search_posts(query=query)
         return {"query": query, "items": matches}

@@ -46,9 +46,19 @@ export default function AdvisoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Advisory Assistant</h1>
-        <p className="text-foreground-muted">Ask crop-care questions and get immediate guidance.</p>
+      <header className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Advisory Assistant</h1>
+          <p className="text-foreground-muted">Ask crop-care questions and get immediate guidance.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEntries([])}
+          disabled={entries.length === 0}
+          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Clear Conversation
+        </button>
       </header>
 
       {error ? <ErrorBanner message={error} onRetry={() => setError(null)} /> : null}
@@ -73,7 +83,10 @@ export default function AdvisoryPage() {
       </section>
 
       <section className="glass rounded-2xl p-5 border border-primary/10">
-        <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-3">Conversation</p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold">Conversation</p>
+          <p className="text-xs text-foreground-dim">{entries.length} message{entries.length === 1 ? '' : 's'}</p>
+        </div>
         {entries.length === 0 ? (
           <p className="text-sm text-foreground-muted">No advisory messages yet.</p>
         ) : (

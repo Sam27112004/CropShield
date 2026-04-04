@@ -1,5 +1,7 @@
 'use client';
 
+import { RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useWeatherAlerts, useWeatherCurrent, useWeatherForecast } from '@/hooks/useApi';
 
@@ -7,6 +9,14 @@ export default function WeatherPage() {
   const current = useWeatherCurrent('Pune');
   const forecast = useWeatherForecast('Pune', 5);
   const alerts = useWeatherAlerts('Pune');
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
+
+  const refreshAll = () => {
+    setLastRefreshedAt(new Date().toLocaleTimeString());
+    current.refetch();
+    forecast.refetch();
+    alerts.refetch();
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -17,25 +27,19 @@ export default function WeatherPage() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            current.refetch();
-            forecast.refetch();
-            alerts.refetch();
-          }}
-          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+          onClick={refreshAll}
+          className="inline-flex items-center gap-2 rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
         >
+          <RefreshCw size={14} className={current.loading || forecast.loading || alerts.loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </header>
+      {lastRefreshedAt ? <p className="text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
 
       {current.error || forecast.error || alerts.error ? (
         <ErrorBanner
           message={`${current.error ? `Current: ${current.error}` : ''}${current.error && (forecast.error || alerts.error) ? ' | ' : ''}${forecast.error ? `Forecast: ${forecast.error}` : ''}${forecast.error && alerts.error ? ' | ' : ''}${alerts.error ? `Alerts: ${alerts.error}` : ''}`}
-          onRetry={() => {
-            current.refetch();
-            forecast.refetch();
-            alerts.refetch();
-          }}
+          onRetry={refreshAll}
         />
       ) : null}
 

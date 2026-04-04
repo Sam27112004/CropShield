@@ -1,5 +1,7 @@
 'use client';
 
+import { RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useMandiData, useMarketCommodities, useTrendingCommodities } from '@/hooks/useApi';
 
@@ -7,6 +9,14 @@ export default function MarketPage() {
   const commodities = useMarketCommodities();
   const trending = useTrendingCommodities();
   const mandi = useMandiData();
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
+
+  const refreshAll = () => {
+    setLastRefreshedAt(new Date().toLocaleTimeString());
+    commodities.refetch();
+    trending.refetch();
+    mandi.refetch();
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -17,25 +27,19 @@ export default function MarketPage() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            commodities.refetch();
-            trending.refetch();
-            mandi.refetch();
-          }}
-          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+          onClick={refreshAll}
+          className="inline-flex items-center gap-2 rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
         >
+          <RefreshCw size={14} className={commodities.loading || trending.loading || mandi.loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </header>
+      {lastRefreshedAt ? <p className="text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
 
       {commodities.error || trending.error || mandi.error ? (
         <ErrorBanner
           message={`${commodities.error ? `Commodities: ${commodities.error}` : ''}${commodities.error && (trending.error || mandi.error) ? ' | ' : ''}${trending.error ? `Trending: ${trending.error}` : ''}${trending.error && mandi.error ? ' | ' : ''}${mandi.error ? `Mandi: ${mandi.error}` : ''}`}
-          onRetry={() => {
-            commodities.refetch();
-            trending.refetch();
-            mandi.refetch();
-          }}
+          onRetry={refreshAll}
         />
       ) : null}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Activity, ExternalLink, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useClaims, useDashboardSummary } from '@/hooks/useApi';
@@ -34,6 +35,7 @@ function formatDateTime(value: string): string {
 export default function AnalysisPage() {
   const summaryQuery = useDashboardSummary();
   const claimsQuery = useClaims({ limit: 100, offset: 0 });
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
 
   const loading = summaryQuery.loading || claimsQuery.loading;
   const claims = claimsQuery.data?.items ?? [];
@@ -52,6 +54,12 @@ export default function AnalysisPage() {
   const allClaims = [...claims]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
+  const refreshAll = () => {
+    setLastRefreshedAt(new Date().toLocaleTimeString());
+    summaryQuery.refetch();
+    claimsQuery.refetch();
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -63,24 +71,19 @@ export default function AnalysisPage() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            summaryQuery.refetch();
-            claimsQuery.refetch();
-          }}
+          onClick={refreshAll}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-foreground-main text-sm font-semibold hover:bg-primary/5"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </header>
+      {lastRefreshedAt ? <p className="text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
 
       {summaryQuery.error || claimsQuery.error ? (
         <ErrorBanner
           message={`${summaryQuery.error ? `Summary error: ${summaryQuery.error}` : ''}${summaryQuery.error && claimsQuery.error ? ' | ' : ''}${claimsQuery.error ? `Claims error: ${claimsQuery.error}` : ''}`}
-          onRetry={() => {
-            summaryQuery.refetch();
-            claimsQuery.refetch();
-          }}
+          onRetry={refreshAll}
         />
       ) : null}
 
@@ -150,6 +153,13 @@ export default function AnalysisPage() {
               </tr>
             </thead>
             <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8 text-center text-foreground-dim">
+                    Loading claims...
+                  </td>
+                </tr>
+              ) : null}
               {!loading && allClaims.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-8 text-center text-foreground-dim">

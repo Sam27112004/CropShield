@@ -14,6 +14,7 @@ export const Header = () => {
   const { user } = useAuth();
   const [searchText, setSearchText] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const name = user?.name ?? 'User';
   const roleLabel = user?.role === 'farmer' ? 'Farmer' : 'Claims Auditor';
@@ -27,9 +28,12 @@ export const Header = () => {
       .slice(0, 6);
   }, [searchItems, searchText]);
 
+  const listboxId = 'header-nav-suggestions';
+
   const navigateTo = (href: string) => {
     setSearchOpen(false);
     setSearchText('');
+    setHighlightedIndex(0);
     if (pathname !== href) {
       router.push(href);
     }
@@ -70,32 +74,76 @@ export const Header = () => {
             <input
               type="text"
               value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              onFocus={() => setSearchOpen(true)}
-              onBlur={() => window.setTimeout(() => setSearchOpen(false), 120)}
+              onChange={(event) => {
+                setSearchText(event.target.value);
+                setSearchOpen(true);
+                setHighlightedIndex(0);
+              }}
+              onFocus={() => {
+                setSearchOpen(true);
+                setHighlightedIndex(0);
+              }}
+              onBlur={() => window.setTimeout(() => {
+                setSearchOpen(false);
+                setHighlightedIndex(0);
+              }, 120)}
               onKeyDown={(event) => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  if (!searchOpen) {
+                    setSearchOpen(true);
+                    setHighlightedIndex(0);
+                    return;
+                  }
+                  setHighlightedIndex((prev) => (prev + 1) % Math.max(filteredItems.length, 1));
+                  return;
+                }
+                if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  if (!searchOpen) {
+                    setSearchOpen(true);
+                    setHighlightedIndex(0);
+                    return;
+                  }
+                  setHighlightedIndex((prev) => (prev - 1 + Math.max(filteredItems.length, 1)) % Math.max(filteredItems.length, 1));
+                  return;
+                }
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  setSearchOpen(false);
+                  setHighlightedIndex(0);
+                  return;
+                }
                 if (event.key === 'Enter' && filteredItems.length > 0) {
                   event.preventDefault();
-                  navigateTo(filteredItems[0].href);
+                  const selected = filteredItems[Math.min(highlightedIndex, filteredItems.length - 1)];
+                  navigateTo(selected.href);
                 }
               }}
               placeholder="Quick navigate to pages..."
               className="bg-transparent border-none text-foreground-main w-full outline-none text-sm font-inter"
+              role="combobox"
+              aria-expanded={searchOpen}
+              aria-controls={listboxId}
+              aria-autocomplete="list"
             />
           </div>
 
           {searchOpen ? (
-            <div className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-xl border border-primary/10 bg-white shadow-[0_10px_30px_rgba(38,48,32,0.12)] p-2 z-[120]">
+            <div id={listboxId} role="listbox" className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-xl border border-primary/10 bg-white shadow-[0_10px_30px_rgba(38,48,32,0.12)] p-2 z-[120]">
               {filteredItems.length === 0 ? (
                 <p className="px-3 py-2 text-sm text-foreground-muted">No matching pages.</p>
               ) : (
                 <div className="flex flex-col gap-1">
-                  {filteredItems.map((item) => (
+                  {filteredItems.map((item, index) => (
                     <button
                       key={item.href}
                       type="button"
                       onClick={() => navigateTo(item.href)}
-                      className="text-left rounded-lg px-3 py-2 text-sm text-foreground-main hover:bg-primary/5"
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      role="option"
+                      aria-selected={index === highlightedIndex}
+                      className={`text-left rounded-lg px-3 py-2 text-sm text-foreground-main ${index === highlightedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
                     >
                       <span className="font-semibold">{item.label}</span>
                       <span className="ml-2 text-xs text-foreground-muted">{item.href}</span>

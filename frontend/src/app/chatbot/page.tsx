@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 
@@ -10,10 +10,28 @@ interface Message {
 }
 
 export default function ChatbotPage() {
+  const historyStorageKey = 'cropshield.chatbot.history.v1';
   const [input, setInput] = useState('How can I reduce crop stress this week?');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(historyStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Message[];
+      if (Array.isArray(parsed)) {
+        setMessages(parsed.slice(-30));
+      }
+    } catch {
+      // Ignore malformed local history payload.
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(historyStorageKey, JSON.stringify(messages.slice(-30)));
+  }, [messages]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,6 +63,16 @@ export default function ChatbotPage() {
       {error ? <ErrorBanner message={error} onRetry={() => setError(null)} /> : null}
 
       <section className="glass rounded-2xl p-5 border border-primary/10">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold">Conversation</p>
+          <button
+            type="button"
+            onClick={() => setMessages([])}
+            className="text-xs font-semibold text-foreground-muted hover:text-foreground-main"
+          >
+            Clear
+          </button>
+        </div>
         <div className="max-h-[420px] overflow-auto space-y-3 mb-4 pr-1">
           {messages.length === 0 ? <p className="text-sm text-foreground-muted">No messages yet.</p> : null}
           {messages.map((message, index) => (

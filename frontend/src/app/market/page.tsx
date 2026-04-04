@@ -10,9 +10,22 @@ export default function MarketPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Market Intelligence</h1>
-        <p className="text-foreground-muted">Commodity snapshots, trending movement, and mandi references.</p>
+      <header className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Market Intelligence</h1>
+          <p className="text-foreground-muted">Commodity snapshots, trending movement, and mandi references.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            commodities.refetch();
+            trending.refetch();
+            mandi.refetch();
+          }}
+          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+        >
+          Refresh
+        </button>
       </header>
 
       {commodities.error || trending.error || mandi.error ? (
@@ -38,6 +51,9 @@ export default function MarketPage() {
               </div>
             ))}
           </div>
+          {!commodities.loading && !commodities.data?.items?.length ? (
+            <p className="text-sm text-foreground-muted mt-2">Commodity data unavailable.</p>
+          ) : null}
         </div>
 
         <div className="glass rounded-2xl p-5 border border-primary/10">
@@ -53,6 +69,9 @@ export default function MarketPage() {
               </div>
             ))}
           </div>
+          {!trending.loading && !trending.data?.items?.length ? (
+            <p className="text-sm text-foreground-muted mt-2">Trending data unavailable.</p>
+          ) : null}
         </div>
       </section>
 
@@ -68,6 +87,9 @@ export default function MarketPage() {
             </div>
           ))}
         </div>
+        {!mandi.loading && !mandi.data?.items?.length ? (
+          <p className="text-sm text-foreground-muted mt-2">Mandi data unavailable.</p>
+        ) : null}
       </section>
     </div>
   );

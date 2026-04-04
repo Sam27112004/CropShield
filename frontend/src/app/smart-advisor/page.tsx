@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import ErrorBanner from '@/components/ErrorBanner';
 import { useWeatherCurrent, useTrendingCommodities } from '@/hooks/useApi';
 
 export default function SmartAdvisorPage() {
@@ -20,10 +21,32 @@ export default function SmartAdvisorPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Smart Advisor</h1>
-        <p className="text-foreground-muted">Fused view of weather and market signals for action guidance.</p>
+      <header className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Smart Advisor</h1>
+          <p className="text-foreground-muted">Fused view of weather and market signals for action guidance.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            weather.refetch();
+            trending.refetch();
+          }}
+          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+        >
+          Refresh
+        </button>
       </header>
+
+      {weather.error || trending.error ? (
+        <ErrorBanner
+          message={`${weather.error ? `Weather: ${weather.error}` : ''}${weather.error && trending.error ? ' | ' : ''}${trending.error ? `Market: ${trending.error}` : ''}`}
+          onRetry={() => {
+            weather.refetch();
+            trending.refetch();
+          }}
+        />
+      ) : null}
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="glass rounded-2xl p-5 border border-primary/10">

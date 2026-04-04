@@ -9,12 +9,22 @@ function formatInr(value: number): string {
 
 export default function FinancialPage() {
   const summary = useFinancialSummary();
+  const lastUpdated = new Date().toLocaleTimeString();
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Financial Insights</h1>
-        <p className="text-foreground-muted">Revenue, costs, margin outlook, and guidance for planning decisions.</p>
+      <header className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Financial Insights</h1>
+          <p className="text-foreground-muted">Revenue, costs, margin outlook, and guidance for planning decisions.</p>
+        </div>
+        <button
+          type="button"
+          onClick={summary.refetch}
+          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+        >
+          Refresh
+        </button>
       </header>
 
       {summary.error ? <ErrorBanner message={`Financial summary error: ${summary.error}`} onRetry={summary.refetch} /> : null}
@@ -41,6 +51,7 @@ export default function FinancialPage() {
       <section className="glass rounded-2xl p-5 border border-primary/10">
         <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Recommendation</p>
         {summary.loading ? <div className="h-8 animate-pulse rounded bg-primary/10" /> : <p className="text-sm text-foreground-main">{summary.data?.recommendation ?? 'No recommendation available.'}</p>}
+        {!summary.loading ? <p className="mt-2 text-xs text-foreground-dim">Refreshed at {lastUpdated}</p> : null}
       </section>
     </div>
   );

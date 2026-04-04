@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 
@@ -11,11 +11,29 @@ interface Entry {
 }
 
 export default function MultilingualChatbotPage() {
+  const historyStorageKey = 'cropshield.mchat.history.v1';
   const [language, setLanguage] = useState('en');
   const [message, setMessage] = useState('कपास में पीला पन दिख रहा है, क्या करें?');
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(historyStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Entry[];
+      if (Array.isArray(parsed)) {
+        setEntries(parsed.slice(0, 20));
+      }
+    } catch {
+      // Ignore malformed local history payload.
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(historyStorageKey, JSON.stringify(entries.slice(0, 20)));
+  }, [entries]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,7 +88,16 @@ export default function MultilingualChatbotPage() {
       </section>
 
       <section className="glass rounded-2xl p-5 border border-primary/10">
-        <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Responses</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold">Responses</p>
+          <button
+            type="button"
+            onClick={() => setEntries([])}
+            className="text-xs font-semibold text-foreground-muted hover:text-foreground-main"
+          >
+            Clear
+          </button>
+        </div>
         {entries.length === 0 ? <p className="text-sm text-foreground-muted">No messages yet.</p> : null}
         <div className="space-y-2">
           {entries.map((entry, index) => (

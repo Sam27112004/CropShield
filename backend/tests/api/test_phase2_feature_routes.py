@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.config import Settings, get_settings
+from app.main import app
+
 
 @pytest.mark.asyncio
 async def test_weather_market_and_advisory_routes_return_200(client, admin_headers) -> None:
@@ -107,3 +110,30 @@ async def test_disease_detect_route_returns_prediction(client, admin_headers) ->
     assert body["predicted_disease"]
     assert 0 <= body["confidence"] <= 1
     assert isinstance(body["recommendation"], str)
+
+
+@pytest.mark.asyncio
+async def test_feature_flag_disabled_routes_return_503(client, admin_headers) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        enable_weather_module=False,
+        enable_market_module=False,
+        enable_advisory_module=False,
+    )
+
+    try:
+        weather_resp = await client.get("/api/v1/weather/current?location=Pune", headers=admin_headers)
+        market_resp = await client.get("/api/v1/market/commodities", headers=admin_headers)
+        advisory_resp = await client.post(
+            "/api/v1/advisory/chat",
+            json={"message": "test", "language": "en"},
+            headers=admin_headers,
+        )
+
+        assert weather_resp.status_code == 503
+        assert market_resp.status_code == 503
+        assert advisory_resp.status_code == 503
+        assert weather_resp.json()["detail"] == "Weather module disabled"
+        assert market_resp.json()["detail"] == "Market module disabled"
+        assert advisory_resp.json()["detail"] == "Advisory module disabled"
+    finally:
+        app.dependency_overrides.pop(get_settings, None)

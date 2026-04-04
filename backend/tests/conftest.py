@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+import os
+from collections.abc import AsyncGenerator
+from pathlib import Path
+
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+
+TEST_DB_PATH = Path(__file__).resolve().parent / "test_api.db"
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB_PATH.as_posix()}"
+os.environ["SYNC_DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH.as_posix()}"
+os.environ["REDIS_URL"] = "redis://unused:6379/0"
+os.environ["CELERY_BROKER_URL"] = "memory://"
+os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
+os.environ["ENABLE_EARTH_ENGINE"] = "false"
+os.environ["REPORT_ARTIFACTS_DIR"] = str((Path(__file__).resolve().parents[2] / "data" / "artifacts").as_posix())
+
+from app.api.deps import db_session_dep, redis_dep  # noqa: E402
+from app.db.base import Base  # noqa: E402
+from app.main import app  # noqa: E402
+from app.workers.tasks import analyze_claim_task, generate_report_task  # noqa: E402
+
+
+class DummyRedis:
+    def __init__(self) -> None:
+        self.store: dict[str, bytes] = {}
+
+    async def get(self, key: str):
+        return self.store.get(key)
+
+    async def setex(self, key: str, _ttl: int, value):
+        if isinstance(value, str):
+            self.store[key] = value.encode("utf-8")
+        else:
+            self.store[key] = value
+        return True
+
+    async def delete(self, key: str):
+        self.store.pop(key, None)
+        return 1
+
+    async def ping(self):
+        return True
+
+    async def close(self):
+        return None
+
+
+@pytest_asyncio.fixture(scope="session")
+async def engine():
+    if TEST_DB_PATH.exists():
+        TEST_DB_PATH.unlink()
+    async_engine = create_async_engine(os.environ["DATABASE_URL"], future=True)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield async_engine
+    await async_engine.dispose()
+    if TEST_DB_PATH.exists():
+        TEST_DB_PATH.unlink()
+
+
+@pytest_asyncio.fixture
+async def session_maker(engine):
+    return async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def reset_db(session_maker):
+    async with session_maker() as session:
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(delete(table))
+        await session.commit()
+    yield
+
+
+@pytest_asyncio.fixture
+async def redis_client():
+    return DummyRedis()
+
+
+@pytest_asyncio.fixture
+async def client(session_maker, redis_client, monkeypatch) -> AsyncGenerator[AsyncClient, None]:
+    async def _db_override():
+        async with session_maker() as session:
+            yield session
+
+    async def _redis_override():
+        return redis_client
+
+    app.dependency_overrides[db_session_dep] = _db_override
+    app.dependency_overrides[redis_dep] = _redis_override
+
+    class DummyAsyncResult:
+        id = "dummy"
+
+    def _fake_apply_async(*args, **kwargs):
+        return DummyAsyncResult()
+
+    monkeypatch.setattr(analyze_claim_task, "apply_async", _fake_apply_async)
+    monkeypatch.setattr(generate_report_task, "apply_async", _fake_apply_async)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as async_client:
+        yield async_client
+
+    app.dependency_overrides.clear()

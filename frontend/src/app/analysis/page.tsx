@@ -44,9 +44,8 @@ export default function AnalysisPage() {
   ).length;
   const completionRate = totalClaims > 0 ? (analysisCompleted / totalClaims) * 100 : 0;
 
-  const recentClaims = [...claims]
+  const allClaims = [...claims]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 10);
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,7 +124,7 @@ export default function AnalysisPage() {
 
       <section className="glass rounded-2xl overflow-hidden border border-primary/10">
         <div className="px-5 py-4 border-b border-primary/10 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground-main">Recent Analysis Candidates</h2>
+          <h2 className="text-lg font-bold text-foreground-main">All Claims (Admin View)</h2>
           <Link href="/claims" className="text-sm font-semibold text-primary no-underline">View all claims</Link>
         </div>
         <div className="overflow-x-auto">
@@ -140,14 +139,14 @@ export default function AnalysisPage() {
               </tr>
             </thead>
             <tbody>
-              {!loading && recentClaims.length === 0 ? (
+              {!loading && allClaims.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-8 text-center text-foreground-dim">
                     No claims found yet. Create a new claim to start analysis.
                   </td>
                 </tr>
               ) : null}
-              {recentClaims.map((claim) => (
+              {allClaims.map((claim) => (
                 <tr key={claim.id} className="border-b border-primary/5">
                   <td className="px-5 py-4 font-mono text-sm">#{claim.id}</td>
                   <td className="px-5 py-4 text-sm">{claim.farmer_name}</td>

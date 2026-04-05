@@ -32,7 +32,11 @@ type EntryMode = 'automation' | 'manual';
 type ViewMode = 'new' | 'status';
 
 function canViewDetailedReport(claim: Claim): boolean {
-  return claim.admin_status === 'approved';
+  return (
+    claim.admin_status === 'approved' || 
+    claim.status === 'analysis_completed' || 
+    claim.status === 'pending_admin_review'
+  );
 }
 
 function getStatusDescriptor(claim: Claim): { label: string; tone: string; icon?: any; spinner?: boolean; retry?: boolean } {
@@ -584,7 +588,7 @@ export default function FarmerRequestsPage() {
                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-gray-400">Asset Type</th>
                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-gray-400">Event Date</th>
                    <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 text-center">Audit Status</th>
-                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 text-right">Dossier</th>
+                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 text-right">Analysis Detail</th>
                 </tr>
               </thead>
               <tbody>
@@ -606,9 +610,9 @@ export default function FarmerRequestsPage() {
                           </td>
                           <td className="px-6 py-4 text-right">
                              {approved ? (
-                               <Link href={`/analysis/${claim.id}`} className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:scale-105 transition-all">
-                                 Unlock Data <ExternalLink size={12} />
-                               </Link>
+                                 <Link href={`/analysis/${claim.id}`} className="inline-flex items-center gap-1.5 text-primary hover:text-emerald-700 font-bold transition-colors">
+                                   View Report <ChevronRight size={14} />
+                                 </Link>
                              ) : claim.status === 'failed' ? (
                                <button 
                                  onClick={() => openRetryPanel(claim)}

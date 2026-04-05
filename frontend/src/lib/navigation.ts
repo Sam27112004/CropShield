@@ -50,6 +50,7 @@ const FARMER_NAV_ITEMS: NavItem[] = [
 
 export const FARMER_ALLOWED_PREFIXES = [
   '/farmer',
+  '/analysis',
   ...Array.from(new Set(FARMER_NAV_ITEMS.map((item) => item.href))),
 ];
 

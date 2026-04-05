@@ -347,6 +347,35 @@ export default function FarmerRequestsPage() {
       claimForm.upscale_factor,
     );
 
+  const trackAnalysisJob = async (jobId: string, claimId: number, onFailure?: (message: string) => void) => {
+    try {
+      const latest = await waitForJobCompletion(jobId, {
+        timeoutMs: 10 * 60_000,
+        onUpdate: (update) => {
+          setJobProgress(update.progress ?? 0);
+          setJobInfo(`Analysis status: ${update.status} (${update.progress ?? 0}%)`);
+        },
+      });
+
+      if (latest.status === 'failed') {
+        const message = latest.error_message ?? 'Analysis failed.';
+        setJobInfo(`Analysis failed: ${message}`);
+        onFailure?.(message);
+        return;
+      }
+
+      setJobProgress(100);
+      setJobInfo('Analysis completed. Refreshing requests...');
+      await claimsQuery.refetch();
+      setSubmittedClaimId(claimId);
+      setView('status');
+    } catch (err) {
+      const message = String(err);
+      setJobInfo(`Analysis tracking stopped: ${message}`);
+      onFailure?.(message);
+    }
+  };
+
   const openRetryPanel = async (claim: Claim) => {
     const damageDate = new Date(`${claim.damage_date}T00:00:00`);
     const startDate = new Date(damageDate.getTime() - (10 * 24 * 60 * 60 * 1000));
@@ -380,17 +409,24 @@ export default function FarmerRequestsPage() {
         claimForm.upscale_factor,
       );
       const job = await analyzeClaim(claim.id, params);
-      const latest = await waitForJobCompletion(job.job_id, {
-        timeoutMs: 10 * 60_000,
-        onUpdate: (update) => setRetryJob(update),
-      });
-      if (latest.status === 'failed') {
-        setRetryFailureReason(normalizeFailureReason(latest.error_message));
-        throw new Error(normalizeFailureReason(latest.error_message));
-      }
-      await claimsQuery.refetch();
-      setRetryClaimId(null);
-      setSubmittedClaimId(claim.id);
+      void (async () => {
+        try {
+          const latest = await waitForJobCompletion(job.job_id, {
+            timeoutMs: 10 * 60_000,
+            onUpdate: (update) => setRetryJob(update),
+          });
+          if (latest.status === 'failed') {
+            setRetryFailureReason(normalizeFailureReason(latest.error_message));
+            setRetryError(normalizeFailureReason(latest.error_message));
+            return;
+          }
+          await claimsQuery.refetch();
+          setRetryClaimId(null);
+          setSubmittedClaimId(claim.id);
+        } catch (retryErr) {
+          setRetryError(String(retryErr));
+        }
+      })();
     } catch (err) {
       setRetryError(String(err));
     } finally {
@@ -452,26 +488,13 @@ export default function FarmerRequestsPage() {
       const job = await analyzeClaim(claim.id, buildAnalysisParams());
 
       setJobInfo('Analysis queued. Streaming progress...');
-      const latest = await waitForJobCompletion(job.job_id, {
-        timeoutMs: 10 * 60_000,
-        onUpdate: (update) => {
-          setJobProgress(update.progress ?? 0);
-          setJobInfo(`Analysis status: ${update.status} (${update.progress ?? 0}%)`);
-        },
-      });
-
-      if (latest.status === 'failed') {
-        throw new Error(latest.error_message ?? 'Analysis failed.');
-      }
-      if (latest.status === 'completed') {
-        setSubmittedClaimId(claim.id);
-        claimsQuery.refetch();
-        setView('status');
-        setStep(1);
-        setLoading(false);
-        return;
-      }
-      throw new Error('Analysis ended in an unexpected state. Please retry.');
+      setSubmittedClaimId(claim.id);
+      setView('status');
+      setStep(1);
+      setLoading(false);
+      void trackAnalysisJob(job.job_id, claim.id);
+      void claimsQuery.refetch();
+      return;
     } catch (err) {
       setError(String(err));
       setLoading(false);

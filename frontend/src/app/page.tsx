@@ -4,6 +4,18 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { RefreshCw, ShieldCheck, TriangleAlert, Wheat } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 import {
@@ -22,7 +34,7 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass rounded-2xl p-5 md:p-6 border border-primary/10"
+      className="feed-card"
     >
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-foreground-dim font-semibold">{props.title}</p>
@@ -37,6 +49,22 @@ function MetricCard(props: { title: string; value: string; subtitle: string; ico
       )}
       <p className="text-xs text-foreground-muted">{props.subtitle}</p>
     </motion.div>
+  );
+}
+
+function SignalChartCard(props: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="feed-card h-full">
+      <div className="mb-4">
+        <p className="section-heading mb-2">{props.title}</p>
+        <p className="section-note">{props.description}</p>
+      </div>
+      <div className="h-[280px]">{props.children}</div>
+    </div>
   );
 }
 
@@ -65,6 +93,15 @@ export default function HomePage() {
   const topCommodity = commoditiesQuery.data?.items?.[0];
   const topTrending = trendingQuery.data?.items?.[0];
   const topMandi = mandiQuery.data?.items?.[0];
+  const weatherChartData = forecastQuery.data?.days.map((day) => ({
+    date: day.date.slice(5),
+    minTemp: day.min_temp_c,
+    maxTemp: day.max_temp_c,
+  })) ?? [];
+  const marketChartData = commoditiesQuery.data?.items.slice(0, 4).map((item) => ({
+    label: item.commodity,
+    value: item.price,
+  })) ?? [];
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -116,15 +153,16 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="page-hero">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">CropShield Workflow Dashboard</h1>
-          <p className="text-foreground-muted">
+          <p className="section-heading mb-2">CropShield Overview</p>
+          <h1 className="page-title gradient-text">CropShield Workflow Dashboard</h1>
+          <p className="page-description mt-3">
             Farmer onboarding via land records, map verification, satellite-based damage assessment, and admin supervision.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => {
@@ -136,7 +174,7 @@ export default function HomePage() {
               trendingQuery.refetch();
               mandiQuery.refetch();
             }}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-foreground-main text-sm font-semibold hover:bg-primary/5"
+            className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main transition-colors hover:bg-white"
           >
             <RefreshCw
               size={14}
@@ -160,7 +198,7 @@ export default function HomePage() {
 
       {error ? <ErrorBanner message={`Backend summary is unavailable: ${error}`} onRetry={refetch} /> : null}
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Total Claims"
           value={String(totalClaims)}
@@ -191,16 +229,16 @@ export default function HomePage() {
         />
       </section>
 
-      <section className="glass rounded-2xl p-6 border border-primary/10">
-        <h2 className="text-xl font-bold text-foreground-main mb-3">What Farmers See</h2>
-        <p className="text-sm text-foreground-muted leading-relaxed">
+      <section className="feed-card">
+        <h2 className="section-heading mb-3">What Farmers See</h2>
+        <p className="section-note leading-relaxed">
           Farmers receive possible crop-damage assessment only. Final insurance amount is decided in admin review with PMFBY guidance.
         </p>
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Weather Snapshot</p>
+        <div className="feed-card">
+          <p className="section-heading mb-2">Weather Snapshot</p>
           {weatherQuery.loading ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
           {weatherQuery.error ? <p className="text-sm text-rose-500">{weatherQuery.error}</p> : null}
           {weatherQuery.data ? (
@@ -226,8 +264,8 @@ export default function HomePage() {
           ) : null}
         </div>
 
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Market Snapshot</p>
+        <div className="feed-card">
+          <p className="section-heading mb-2">Market Snapshot</p>
           {(commoditiesQuery.loading || trendingQuery.loading) ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
           {commoditiesQuery.error || trendingQuery.error ? (
             <p className="text-sm text-rose-500">{commoditiesQuery.error ?? trendingQuery.error}</p>
@@ -249,14 +287,14 @@ export default function HomePage() {
           ) : null}
         </div>
 
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Advisory Assistant</p>
+        <div className="feed-card">
+          <p className="section-heading mb-2">Advisory Assistant</p>
           <form onSubmit={submitAdvisory} className="space-y-3">
             <textarea
               value={advisoryMessage}
               onChange={(event) => setAdvisoryMessage(event.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="control-textarea w-full rounded-2xl px-3 py-2 text-sm text-foreground-main focus:outline-none"
             />
             <button
               type="submit"
@@ -291,6 +329,62 @@ export default function HomePage() {
             </div>
           ) : null}
         </div>
+      </section>
+
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <SignalChartCard
+          title="Weather Outlook"
+          description="Forecast low and high temperatures for the next few days."
+        >
+          {forecastQuery.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+          {forecastQuery.error ? <p className="text-sm text-rose-500">{forecastQuery.error}</p> : null}
+          {weatherChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weatherChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                <XAxis dataKey="date" tick={{ fill: '#486151', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#486151', fontSize: 12 }} />
+                <RechartsTooltip
+                  contentStyle={{
+                    borderRadius: 16,
+                    border: '1px solid rgba(47, 133, 90, 0.16)',
+                    background: 'rgba(255,255,255,0.96)',
+                    boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                  }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="minTemp" name="Min Temp" stroke="#68c18a" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="maxTemp" name="Max Temp" stroke="#2f855a" strokeWidth={3} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : null}
+        </SignalChartCard>
+
+        <SignalChartCard
+          title="Market Pulse"
+          description="Current prices for the top commodities being tracked."
+        >
+          {commoditiesQuery.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+          {commoditiesQuery.error ? <p className="text-sm text-rose-500">{commoditiesQuery.error}</p> : null}
+          {marketChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={marketChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                <XAxis dataKey="label" tick={{ fill: '#486151', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#486151', fontSize: 12 }} />
+                <RechartsTooltip
+                  contentStyle={{
+                    borderRadius: 16,
+                    border: '1px solid rgba(47, 133, 90, 0.16)',
+                    background: 'rgba(255,255,255,0.96)',
+                    boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                  }}
+                />
+                <Bar dataKey="value" fill="#2f855a" radius={[10, 10, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : null}
+        </SignalChartCard>
       </section>
     </div>
   );

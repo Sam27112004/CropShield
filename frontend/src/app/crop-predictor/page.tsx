@@ -43,33 +43,51 @@ export default function CropPredictorPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Crop Predictor</h1>
-        <p className="text-foreground-muted">Estimate expected yield and operational risk using simple field inputs.</p>
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="page-hero">
+        <div>
+          <p className="section-heading mb-2">Yield Planning</p>
+          <h1 className="page-title gradient-text">Crop Predictor</h1>
+          <p className="page-description mt-3">Estimate expected yield and operational risk using simple field inputs.</p>
+        </div>
       </header>
 
       {error ? <ErrorBanner message={error} onRetry={() => setError(null)} /> : null}
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
+      <section className="feed-card">
+        <div className="mb-4">
+          <p className="section-heading mb-2">Input Signals</p>
+          <p className="section-note">Enter the core field signals to estimate yield and operational risk.</p>
+        </div>
         <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3" onSubmit={handleSubmit}>
-          <input value={cropType} onChange={(e) => setCropType(e.target.value)} placeholder="Crop type" className="rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm" />
-          <input value={soilType} onChange={(e) => setSoilType(e.target.value)} placeholder="Soil type" className="rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm" />
-          <input value={rainfallMm} onChange={(e) => setRainfallMm(e.target.value)} placeholder="Rainfall (mm)" className="rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm" />
-          <input value={temperatureC} onChange={(e) => setTemperatureC(e.target.value)} placeholder="Temp (°C)" className="rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm" />
-          <button type="submit" disabled={loading} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+          <input value={cropType} onChange={(e) => setCropType(e.target.value)} placeholder="Crop type" className="control-input rounded-2xl px-3 py-2 text-sm" />
+          <input value={soilType} onChange={(e) => setSoilType(e.target.value)} placeholder="Soil type" className="control-input rounded-2xl px-3 py-2 text-sm" />
+          <input value={rainfallMm} onChange={(e) => setRainfallMm(e.target.value)} placeholder="Rainfall (mm)" className="control-input rounded-2xl px-3 py-2 text-sm" />
+          <input value={temperatureC} onChange={(e) => setTemperatureC(e.target.value)} placeholder="Temp (°C)" className="control-input rounded-2xl px-3 py-2 text-sm" />
+          <button type="submit" disabled={loading} className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
             {loading ? 'Predicting...' : 'Predict'}
           </button>
         </form>
       </section>
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
-        <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Prediction</p>
+      <section className="feed-card">
+        <p className="section-heading mb-2">Prediction</p>
         {result ? (
-          <div className="space-y-2">
-            <p className="text-sm text-foreground-main">Expected Yield: <span className="font-semibold">{result.expected_yield_tph.toFixed(2)} t/ha</span></p>
-            <p className="text-sm text-foreground-main">Risk Level: <span className="font-semibold">{result.risk_level}</span></p>
-            <p className="text-sm text-foreground-muted">Recommendation: {result.recommendation}</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="stat-card">
+                <p className="stat-card__label">Expected Yield</p>
+                <p className="stat-card__value">{result.expected_yield_tph.toFixed(2)} <span className="text-sm font-semibold text-foreground-dim">t/ha</span></p>
+              </div>
+              <div className="stat-card">
+                <p className="stat-card__label">Risk Level</p>
+                <p className="stat-card__value capitalize">{result.risk_level}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border-glass bg-white/80 px-4 py-4">
+              <p className="section-heading mb-2">Recommendation</p>
+              <p className="section-note">{result.recommendation}</p>
+            </div>
           </div>
         ) : (
           <p className="text-sm text-foreground-muted">No prediction yet.</p>

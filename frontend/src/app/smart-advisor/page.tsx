@@ -20,11 +20,12 @@ export default function SmartAdvisorPage() {
   }, [weather.data, trending.data]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="page-hero">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Smart Advisor</h1>
-          <p className="text-foreground-muted">Fused view of weather and market signals for action guidance.</p>
+          <p className="section-heading mb-2">Decision Support</p>
+          <h1 className="page-title gradient-text">Smart Advisor</h1>
+          <p className="page-description mt-3">Fused view of weather and market signals for action guidance.</p>
         </div>
         <button
           type="button"
@@ -32,7 +33,7 @@ export default function SmartAdvisorPage() {
             weather.refetch();
             trending.refetch();
           }}
-          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+          className="rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main hover:bg-white"
         >
           Refresh
         </button>
@@ -49,8 +50,8 @@ export default function SmartAdvisorPage() {
       ) : null}
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Weather Signal</p>
+        <div className="feed-card">
+          <p className="section-heading mb-2">Weather Signal</p>
           {weather.loading ? <div className="h-16 animate-pulse rounded bg-primary/10" /> : null}
           {weather.data ? (
             <div className="space-y-1 text-sm">
@@ -61,8 +62,8 @@ export default function SmartAdvisorPage() {
           ) : null}
         </div>
 
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Market Signal</p>
+        <div className="feed-card">
+          <p className="section-heading mb-2">Market Signal</p>
           {trending.loading ? <div className="h-16 animate-pulse rounded bg-primary/10" /> : null}
           {trending.data?.items?.[0] ? (
             <div className="space-y-1 text-sm">
@@ -73,8 +74,8 @@ export default function SmartAdvisorPage() {
         </div>
       </section>
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
-        <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Smart Recommendation</p>
+      <section className="feed-card">
+        <p className="section-heading mb-2">Smart Recommendation</p>
         <p className="text-sm text-foreground-main">{recommendation}</p>
       </section>
     </div>

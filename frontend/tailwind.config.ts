@@ -10,26 +10,27 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#336B4B",
-          light:   "#7DB87A",
-          glow:    "rgba(51, 107, 75, 0.20)",
+          DEFAULT: "#2f855a",
+          light:   "#7ddf92",
+          glow:    "rgba(47, 133, 90, 0.18)",
         },
-        secondary: "#7DB87A",
-        accent:    "#1C3829",
+        secondary: "#68c18a",
+        accent:    "#1b241d",
         background: {
-          deep:      "#F0EDE4",
-          slate:     "#E5E0D5",
-          card:      "rgba(255, 255, 255, 0.58)",
-          cardHover: "rgba(255, 255, 255, 0.80)",
+          app:       "#f5f7f3",
+          deep:      "#edf2eb",
+          slate:     "#e4eadf",
+          card:      "rgba(255, 255, 255, 0.82)",
+          cardHover: "rgba(255, 255, 255, 0.96)",
         },
         foreground: {
-          main:  "#1C3829",
-          muted: "#2A5240",
-          dim:   "#336B4B",
+          main:  "#1b241d",
+          muted: "#486151",
+          dim:   "#6f8576",
         },
         border: {
-          glass:  "rgba(51, 107, 75, 0.14)",
-          active: "rgba(51, 107, 75, 0.32)",
+          glass:  "rgba(47, 133, 90, 0.12)",
+          active: "rgba(47, 133, 90, 0.25)",
         },
       },
       fontFamily: {
@@ -42,8 +43,8 @@ export default {
         lg: "24px",
       },
       boxShadow: {
-        premium: "0 10px 25px -5px rgba(4, 57, 21, 0.14), 0 8px 10px -6px rgba(4, 57, 21, 0.08)",
-        glow:    "0 0 20px rgba(76, 118, 59, 0.10)",
+        premium: "0 20px 40px rgba(47, 86, 61, 0.10), 0 8px 16px rgba(47, 86, 61, 0.06)",
+        glow:    "0 0 24px rgba(47, 133, 90, 0.10)",
       },
     },
   },

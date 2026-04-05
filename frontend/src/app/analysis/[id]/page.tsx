@@ -17,8 +17,8 @@ import type { AnalysisArtifacts, AnalysisResult, Claim, JobStatusResponse } from
 
 function ImagePanel({ title, src }: { title: string; src: string }) {
   return (
-    <div className="glass rounded-xl overflow-hidden border border-primary/10">
-      <p className="px-4 py-3 text-sm font-semibold text-foreground-main border-b border-primary/10">{title}</p>
+    <div className="feed-card overflow-hidden p-0">
+      <p className="px-4 py-3 text-sm font-semibold text-foreground-main border-b border-border-glass">{title}</p>
       <div className="bg-black/20">
         <Image
           src={src}
@@ -132,35 +132,36 @@ export default function AnalysisDetailPage() {
   const attemptedWindows = failureReason ? extractAttemptedWindows(failureReason) : [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <Link href="/farmer/requests" className="inline-flex items-center gap-2 text-primary no-underline">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <div className="page-hero">
+        <div>
+          <p className="section-heading mb-2">Claim Analysis</p>
+          <h1 className="page-title gradient-text">Analysis Detail</h1>
+          <p className="page-description mt-3">Review fused damage signals, imagery, and the final decision trail.</p>
+        </div>
+        <Link href="/farmer/requests" className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main no-underline hover:bg-white">
           <ArrowLeft size={16} />
           Back to Requests
         </Link>
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-sm font-semibold"
-        >
+        <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold hover:bg-white">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </div>
 
       {error ? (
-        <div className="glass rounded-xl p-4 border border-red-300/60 text-red-700 text-sm">{error}</div>
+        <div className="feed-card rounded-2xl border border-red-300/60 text-red-700 text-sm">{error}</div>
       ) : null}
 
       {loading ? (
-        <div className="glass rounded-2xl p-8 border border-primary/10 text-center">
+        <div className="feed-card rounded-2xl p-8 text-center">
           <Loader2 size={24} className="animate-spin text-primary mx-auto mb-3" />
           Loading analysis...
         </div>
       ) : null}
 
       {!loading && claim ? (
-        <section className="glass rounded-2xl p-6 border border-primary/10 grid md:grid-cols-4 gap-4 text-sm">
+        <section className="feed-card grid md:grid-cols-4 gap-4 text-sm">
           <p><strong>Claim ID:</strong> #{claim.id}</p>
           <p><strong>Farmer:</strong> {claim.farmer_name}</p>
           <p><strong>Crop:</strong> {claim.crop_type}</p>
@@ -169,7 +170,7 @@ export default function AnalysisDetailPage() {
       ) : null}
 
       {!loading && !analysis?.analysis ? (
-        <section className="glass rounded-2xl p-6 border border-primary/10 text-center">
+        <section className="feed-card text-center">
           <p className="text-foreground-muted mb-4">No analysis found for this claim yet.</p>
           <button type="button" className="btn-premium" onClick={runAnalysis} disabled={busy}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : null}
@@ -179,7 +180,7 @@ export default function AnalysisDetailPage() {
       ) : null}
 
       {analysis?.analysis && analysis.analysis.status !== 'completed' ? (
-        <section className="glass rounded-2xl p-6 border border-primary/10 text-center">
+        <section className="feed-card text-center">
           <p className="text-foreground-main font-semibold mb-2">Analysis status: {analysis.analysis.status}</p>
           <p className="text-sm text-foreground-muted mb-4">{job ? `${job.status} (${job.progress}%)` : 'Processing...'}</p>
           <button type="button" className="btn-premium" onClick={runAnalysis} disabled={busy}>
@@ -190,7 +191,7 @@ export default function AnalysisDetailPage() {
       ) : null}
 
       {failureReason ? (
-        <section className="glass rounded-2xl p-6 border border-red-300/60">
+        <section className="feed-card border border-red-300/60">
           <h2 className="text-lg font-bold text-red-700 mb-2">Imagery Lookup Failed</h2>
           <p className="text-sm text-red-800 mb-3">{failureReason}</p>
           {attemptedWindows.length > 0 ? (
@@ -212,7 +213,7 @@ export default function AnalysisDetailPage() {
       {analysis?.analysis?.status === 'completed' ? (
         <>
           {farmerAssessment ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10">
+            <section className="feed-card">
               <h2 className="text-xl font-bold text-foreground-main mb-2">Possible Crop Damage Assessment</h2>
               <p className="text-3xl font-bold text-primary mb-2">{farmerAssessment.possible_damage_percentage.toFixed(1)}%</p>
               <p className="text-sm font-semibold text-foreground-main mb-2">{farmerAssessment.risk_level}</p>
@@ -224,7 +225,7 @@ export default function AnalysisDetailPage() {
           ) : null}
 
           {decision ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10">
+            <section className="feed-card">
               <h2 className="text-lg font-bold text-foreground-main mb-3">Fused Damage Decision</h2>
               <div className="grid md:grid-cols-2 gap-4 text-sm">
                 <p><strong>Decision:</strong> {decision.decision}</p>
@@ -261,7 +262,7 @@ export default function AnalysisDetailPage() {
             </section>
           ) : null}
 
-          <section className="glass rounded-2xl p-4 border border-primary/10 flex justify-end">
+          <section className="feed-card p-4 flex justify-end">
             <button
               type="button"
               className="btn-premium"

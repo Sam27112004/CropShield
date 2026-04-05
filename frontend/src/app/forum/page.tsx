@@ -132,15 +132,18 @@ export default function ForumPage() {
   const paginatedPosts = sortedPosts.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl md:text-4xl font-bold gradient-text">Community Forum</h1>
-        <p className="text-foreground-muted">Share issues, ask for guidance, and collaborate with other users.</p>
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="page-hero">
+        <div>
+          <p className="section-heading mb-2">Community Space</p>
+          <h1 className="page-title gradient-text">Community Forum</h1>
+          <p className="page-description mt-3">Share issues, ask for guidance, and collaborate with other users.</p>
+        </div>
       </header>
 
       {error ? <ErrorBanner message={error} onRetry={() => loadPosts(query)} /> : null}
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
+      <section className="feed-card">
         <form
           className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-3 items-start"
           onSubmit={(event) => {
@@ -152,12 +155,12 @@ export default function ForumPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search posts"
-            className="rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="control-input rounded-2xl px-3 py-2 text-sm text-foreground-main focus:outline-none"
           />
           <div className="text-sm text-foreground-muted self-center">{posts.length} post(s)</div>
           <button
             type="submit"
-            className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white"
+            className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white"
             disabled={loading}
           >
             {loading ? 'Loading...' : 'Search'}
@@ -168,14 +171,14 @@ export default function ForumPage() {
           <button
             type="button"
             onClick={() => setSortBy('newest')}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${sortBy === 'newest' ? 'border-primary/40 bg-primary/5 text-foreground-main' : 'border-primary/20 text-foreground-muted hover:bg-primary/5'}`}
+            className={`rounded-2xl border px-3 py-1.5 text-xs font-semibold ${sortBy === 'newest' ? 'border-primary/40 bg-primary/5 text-foreground-main' : 'border-border-glass text-foreground-muted hover:bg-primary/5'}`}
           >
             Newest
           </button>
           <button
             type="button"
             onClick={() => setSortBy('likes')}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${sortBy === 'likes' ? 'border-primary/40 bg-primary/5 text-foreground-main' : 'border-primary/20 text-foreground-muted hover:bg-primary/5'}`}
+            className={`rounded-2xl border px-3 py-1.5 text-xs font-semibold ${sortBy === 'likes' ? 'border-primary/40 bg-primary/5 text-foreground-main' : 'border-border-glass text-foreground-muted hover:bg-primary/5'}`}
           >
             Most Liked
           </button>
@@ -183,8 +186,8 @@ export default function ForumPage() {
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="glass rounded-2xl p-5 border border-primary/10 xl:col-span-2">
-          <h2 className="text-lg font-bold text-foreground-main mb-4">Posts</h2>
+        <div className="feed-card xl:col-span-2">
+          <h2 className="section-heading mb-4">Posts</h2>
           <div className="space-y-3 max-h-[420px] overflow-auto pr-1">
             {loading ? (
               <div className="space-y-2">
@@ -203,8 +206,8 @@ export default function ForumPage() {
                     void loadReplies(post.id);
                   }
                 }}
-                className={`w-full text-left rounded-xl border px-4 py-3 transition ${
-                  selectedPostId === post.id ? 'border-primary/40 bg-primary/5' : 'border-primary/10 hover:bg-primary/5'
+                className={`w-full text-left rounded-2xl border px-4 py-3 transition ${
+                  selectedPostId === post.id ? 'border-primary/40 bg-primary/5' : 'border-border-glass hover:bg-primary/5'
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -229,7 +232,7 @@ export default function ForumPage() {
                 type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={safePage <= 1}
-                className="rounded-xl border border-primary/20 px-3 py-1.5 text-xs font-semibold text-foreground-main disabled:opacity-50"
+                className="rounded-2xl border border-border-glass px-3 py-1.5 text-xs font-semibold text-foreground-main disabled:opacity-50"
               >
                 Previous
               </button>
@@ -237,7 +240,7 @@ export default function ForumPage() {
                 type="button"
                 onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
                 disabled={safePage >= pageCount}
-                className="rounded-xl border border-primary/20 px-3 py-1.5 text-xs font-semibold text-foreground-main disabled:opacity-50"
+                className="rounded-2xl border border-border-glass px-3 py-1.5 text-xs font-semibold text-foreground-main disabled:opacity-50"
               >
                 Next
               </button>
@@ -245,37 +248,37 @@ export default function ForumPage() {
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <h2 className="text-lg font-bold text-foreground-main mb-4">New Post</h2>
+        <div className="feed-card">
+          <h2 className="section-heading mb-4">New Post</h2>
           <form className="space-y-3" onSubmit={handleCreatePost}>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Title"
-              className="w-full rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="control-input w-full rounded-2xl px-3 py-2 text-sm text-foreground-main focus:outline-none"
             />
             <textarea
               value={content}
               onChange={(event) => setContent(event.target.value)}
               rows={5}
               placeholder="Describe your issue or question"
-              className="w-full rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="control-textarea w-full rounded-2xl px-3 py-2 text-sm text-foreground-main focus:outline-none"
             />
-            <button type="submit" className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white">
+            <button type="submit" className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white">
               Post
             </button>
           </form>
         </div>
       </section>
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
+      <section className="feed-card">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="text-lg font-bold text-foreground-main">Selected Discussion</h2>
+          <h2 className="section-heading">Selected Discussion</h2>
           {selectedPost ? (
             <button
               type="button"
               onClick={() => void handleLikePost(selectedPost.id)}
-              className="rounded-xl border border-primary/20 px-3 py-1.5 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+              className="rounded-2xl border border-border-glass px-3 py-1.5 text-sm font-semibold text-foreground-main hover:bg-primary/5"
             >
               Like ({selectedPost.like_count})
             </button>
@@ -295,7 +298,7 @@ export default function ForumPage() {
           <>
             <div className="space-y-2 mb-4">
               {selectedReplies.map((reply) => (
-                <div key={reply.id} className="rounded-xl border border-primary/10 px-3 py-2">
+                <div key={reply.id} className="rounded-2xl border border-border-glass bg-white/80 px-3 py-2 shadow-sm">
                   <p className="text-sm text-foreground-main">{reply.content}</p>
                   <p className="text-xs text-foreground-dim mt-1">{reply.author} • {formatDateTime(reply.created_at)}</p>
                 </div>

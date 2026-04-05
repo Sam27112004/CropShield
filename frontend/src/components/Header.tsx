@@ -41,15 +41,16 @@ export const Header = () => {
 
   return (
     <header className="
-      h-16 md:h-20
+      h-16 md:h-[72px]
       fixed top-0 left-0 right-0
-      lg:top-6 lg:right-8 lg:left-[312px]
+      lg:top-4 lg:right-4 lg:left-[296px]
       flex items-center justify-between
       px-4 md:px-8
       z-[90]
-      bg-background-card/80 backdrop-blur-xl
-      border-b border-primary/10
-      lg:rounded-lg lg:border lg:border-primary/15 lg:shadow-sm
+      bg-background-card/90 backdrop-blur-2xl
+      border-b border-border-glass
+      shadow-[0_16px_40px_rgba(31,52,38,0.08)]
+      lg:rounded-[28px] lg:border lg:border-border-glass
     ">
       {/* Left: hamburger (mobile) + search (desktop) */}
       <div className="flex items-center gap-3 flex-1">
@@ -68,8 +69,8 @@ export const Header = () => {
         </span>
 
         {/* Search bar — hidden on small screens */}
-        <div className="hidden md:block relative w-[300px] xl:w-[400px]">
-          <div className="flex items-center gap-3 bg-white border border-primary/10 px-5 py-2.5 rounded-md transition-all duration-300 focus-within:border-primary/30 focus-within:shadow-[0_4px_15px_rgba(98,111,71,0.1)] shadow-[0_2px_10px_rgba(98,111,71,0.05)]">
+        <div className="hidden md:block relative w-[320px] xl:w-[420px]">
+          <div className="flex items-center gap-3 bg-white/90 border border-border-glass px-4 py-2.5 rounded-2xl transition-all duration-300 focus-within:border-primary/30 focus-within:shadow-[0_12px_30px_rgba(47,133,90,0.10)] shadow-[0_4px_16px_rgba(47,86,61,0.05)]">
             <Search className="text-foreground-dim shrink-0" size={18} />
             <input
               type="text"
@@ -130,7 +131,7 @@ export const Header = () => {
           </div>
 
           {searchOpen ? (
-            <div id={listboxId} role="listbox" className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-xl border border-primary/10 bg-white shadow-[0_10px_30px_rgba(38,48,32,0.12)] p-2 z-[120]">
+            <div id={listboxId} role="listbox" className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-2xl border border-border-glass bg-white/96 shadow-[0_20px_40px_rgba(38,48,32,0.14)] p-2 z-[120]">
               {filteredItems.length === 0 ? (
                 <p className="px-3 py-2 text-sm text-foreground-muted">No matching pages.</p>
               ) : (
@@ -170,7 +171,7 @@ export const Header = () => {
             <span className="text-sm font-semibold text-foreground-main leading-tight">{name}</span>
             <span className="text-[10px] text-foreground-dim uppercase tracking-wider font-bold">{roleLabel}</span>
           </div>
-          <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_20px_rgba(98,111,71,0.05)] text-white">
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_20px_rgba(47,133,90,0.12)] text-white">
             {user?.picture ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.picture} alt={name} className="w-full h-full rounded-xl object-cover" />

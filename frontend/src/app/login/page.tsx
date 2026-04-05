@@ -111,19 +111,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background-deep flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-background-app flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-6">
-        <section className="glass rounded-2xl border border-primary/10 p-8">
-          <h1 className="text-3xl font-bold gradient-text mb-2">CropShield AI Access</h1>
-          <p className="text-sm text-foreground-muted mb-6">
+        <section className="feed-card p-8">
+          <p className="section-heading mb-2">Secure Access</p>
+          <h1 className="page-title gradient-text">CropShield AI Access</h1>
+          <p className="page-description mt-3 mb-6">
             Sign in to continue. Admin and farmer access are verified by the backend.
           </p>
 
-          <div className="inline-flex rounded-xl border border-primary/20 bg-white/70 p-1 mb-6">
+          <div className="inline-flex rounded-2xl border border-border-glass bg-white/80 p-1 mb-6">
             <button
               type="button"
               onClick={() => setActiveTab('login')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold ${
                 activeTab === 'login' ? 'bg-primary text-white' : 'text-foreground-main hover:bg-primary/5'
               }`}
             >
@@ -132,7 +133,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setActiveTab('signup')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold ${
                 activeTab === 'signup' ? 'bg-primary text-white' : 'text-foreground-main hover:bg-primary/5'
               }`}
             >
@@ -141,13 +142,13 @@ export default function LoginPage() {
           </div>
 
           {message ? (
-            <div className="mb-4 rounded-xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-2xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-700">
               {message}
             </div>
           ) : null}
 
           <div className="grid gap-4">
-            <article className="rounded-xl border border-primary/15 bg-white/70 p-4">
+            <article className="rounded-2xl border border-border-glass bg-white/80 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <ShieldCheck size={18} className="text-primary" />
                 <h2 className="font-semibold text-foreground-main">Admin Login</h2>
@@ -162,7 +163,7 @@ export default function LoginPage() {
                     setAdminFieldErrors((prev) => ({ ...prev, username: undefined }));
                   }}
                   placeholder="Username"
-                  className="w-full rounded-xl border border-primary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="control-input w-full rounded-2xl px-3 py-2 text-sm outline-none"
                 />
                 {adminFieldErrors.username ? (
                   <p className="text-xs text-red-700">{adminFieldErrors.username}</p>
@@ -175,7 +176,7 @@ export default function LoginPage() {
                     setAdminFieldErrors((prev) => ({ ...prev, password: undefined }));
                   }}
                   placeholder="Password"
-                  className="w-full rounded-xl border border-primary/20 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="control-input w-full rounded-2xl px-3 py-2 text-sm outline-none"
                 />
                 {adminFieldErrors.password ? (
                   <p className="text-xs text-red-700">{adminFieldErrors.password}</p>
@@ -186,7 +187,7 @@ export default function LoginPage() {
               </form>
             </article>
 
-            <article className="rounded-xl border border-primary/15 bg-white/70 p-4">
+            <article className="rounded-2xl border border-border-glass bg-white/80 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <Tractor size={18} className="text-primary" />
                 <h2 className="font-semibold text-foreground-main">
@@ -205,9 +206,10 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="glass rounded-2xl border border-primary/10 p-8 flex flex-col justify-between">
+        <section className="feed-card p-8 flex flex-col justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-foreground-main mb-3">Role-based Entry</h2>
+            <p className="section-heading mb-2">Role-based Entry</p>
+            <h2 className="page-title text-2xl">Account Overview</h2>
             <ul className="text-sm text-foreground-muted space-y-2">
               <li>Admin: full dashboard, analysis, and review workflow.</li>
               <li>Farmer: access to farmer requests and claim submission flow.</li>

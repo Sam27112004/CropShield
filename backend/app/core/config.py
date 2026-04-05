@@ -56,6 +56,20 @@ class Settings(BaseSettings):
     enable_forum_module: bool = True
     enable_disease_module: bool = True
 
+    grok_api_key: str | None = None
+    grok_base_url: str = "https://api.x.ai/v1"
+    grok_model: str = "grok-2-latest"
+    grok_timeout_seconds: float = 20.0
+    groq_api_key: str | None = None
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "llama-3.1-8b-instant"
+
+    openweather_api_key: str | None = None
+    openweather_base_url: str = "https://api.openweathermap.org"
+    data_gov_in_api_key: str | None = None
+    data_gov_in_base_url: str = "https://api.data.gov.in"
+    data_gov_in_market_resource_id: str = "9ef84268-d588-465a-a308-a864a43d0070"
+
     # Domain defaults preserved from the Streamlit prototype.
     default_gap_before_days: int = 5
     default_gap_after_days: int = 5

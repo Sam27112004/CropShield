@@ -1,18 +1,80 @@
 from __future__ import annotations
 
+import httpx
+
+from app.core.config import get_settings
+
+
+def _fallback_chat_response(language: str) -> dict[str, object]:
+    normalized_language = language.lower().strip() or "en"
+    reply = (
+        "Please monitor moisture levels and inspect leaf color before the next irrigation cycle. "
+        "If you share crop type and recent weather, I can provide a tighter recommendation."
+    )
+    return {
+        "provider": "fallback",
+        "reply": reply if normalized_language == "en" else reply,
+        "fallback_used": True,
+    }
+
 
 class AdvisoryServiceAdapter:
     async def chat(self, *, message: str, language: str) -> dict[str, object]:
-        normalized_language = language.lower().strip() or "en"
-        reply = (
-            "Please monitor moisture levels and inspect leaf color before the next irrigation cycle. "
-            "If you share crop type and recent weather, I can provide a tighter recommendation."
-        )
-        return {
-            "provider": "fallback",
-            "reply": reply if normalized_language == "en" else reply,
-            "fallback_used": True,
-        }
+        settings = get_settings()
+        provider_name = "grok"
+        api_key = settings.grok_api_key
+        base_url = settings.grok_base_url
+        model = settings.grok_model
+
+        if not api_key and settings.groq_api_key:
+            provider_name = "groq"
+            api_key = settings.groq_api_key
+            base_url = settings.groq_base_url
+            model = settings.groq_model
+
+        if not api_key:
+            return _fallback_chat_response(language)
+
+        try:
+            async with httpx.AsyncClient(timeout=settings.grok_timeout_seconds) as client:
+                response = await client.post(
+                    f"{base_url.rstrip('/')}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You are an agronomy advisor for Indian farmers. "
+                                    "Give concise, practical, and safety-first crop guidance. "
+                                    f"Respond in language code '{language}'."
+                                ),
+                            },
+                            {"role": "user", "content": message},
+                        ],
+                        "temperature": 0.4,
+                    },
+                )
+            response.raise_for_status()
+            body = response.json()
+            choices = body.get("choices") if isinstance(body, dict) else None
+            first_choice = choices[0] if isinstance(choices, list) and choices else {}
+            chat_message = first_choice.get("message") if isinstance(first_choice, dict) else {}
+            reply = chat_message.get("content") if isinstance(chat_message, dict) else None
+            if not isinstance(reply, str) or not reply.strip():
+                return _fallback_chat_response(language)
+
+            return {
+                "provider": provider_name,
+                "reply": reply.strip(),
+                "fallback_used": False,
+            }
+        except Exception:
+            return _fallback_chat_response(language)
 
     async def predict_crop(
         self,

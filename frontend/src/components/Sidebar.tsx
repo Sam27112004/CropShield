@@ -55,27 +55,29 @@ export const Sidebar = () => {
 
       <aside
         className={`
-          fixed left-0 top-0 h-full w-[280px] flex flex-col p-6 z-[100]
-          bg-accent/95 backdrop-blur-2xl border-r border-white/10 shadow-2xl
+          fixed left-0 top-0 h-full w-[280px] flex flex-col p-5 z-[100]
+          bg-background-card/92 backdrop-blur-2xl border-r border-border-glass shadow-[0_24px_60px_rgba(31,52,38,0.12)]
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:left-6 lg:top-6 lg:h-[calc(100vh-48px)] lg:rounded-xl lg:border lg:border-white/10 lg:translate-x-0
+          lg:left-4 lg:top-4 lg:h-[calc(100vh-32px)] lg:rounded-[28px] lg:border lg:border-border-glass lg:translate-x-0
         `}
       >
         {/* Logo + close btn (mobile only) */}
-        <div className="flex items-center justify-between mb-10 px-2">
+        <div className="flex items-center justify-between mb-8 px-1">
           <div className="flex items-center gap-3">
-            <ShieldCheck className="text-secondary animate-pulse" />
-            <span className="font-outfit text-2xl font-bold tracking-tighter text-white">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary shadow-[0_10px_25px_rgba(47,133,90,0.12)]">
+              <ShieldCheck className="text-primary" />
+            </div>
+            <span className="font-outfit text-2xl font-bold tracking-tighter text-foreground-main">
               CropShield{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-br from-secondary to-white/80">
+              <span className="bg-clip-text text-transparent bg-gradient-to-br from-primary to-secondary">
                 AI
               </span>
             </span>
           </div>
           <button
             onClick={close}
-            className="lg:hidden p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="lg:hidden p-1.5 rounded-md text-foreground-dim hover:text-primary hover:bg-primary/5 transition-colors"
             aria-label="Close sidebar"
           >
             <X size={20} />
@@ -94,11 +96,11 @@ export const Sidebar = () => {
                 onClick={close}
                 className={`flex items-center gap-4 p-4 px-5 rounded-2xl font-semibold text-base transition-all duration-300 no-underline relative overflow-hidden group
                   ${isActive
-                    ? 'text-white bg-primary shadow-[0_8px_16px_rgba(51,107,75,0.40)] border border-white/15'
-                    : 'text-white/65 hover:text-white hover:bg-white/10 hover:translate-x-1'
+                      ? 'text-white bg-primary shadow-[0_18px_30px_rgba(47,133,90,0.22)] border border-primary/10'
+                      : 'text-foreground-muted hover:text-foreground-main hover:bg-primary/5 hover:translate-x-1'
                   }`}
               >
-                <Icon size={20} className={`${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                  <Icon size={20} className={`${isActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-foreground-dim'}`} />
                 <span>{item.label}</span>
                 {isActive && (
                   <div className="absolute left-0 top-0 h-full w-0 bg-white/10 group-active:w-full transition-all duration-300" />
@@ -112,7 +114,7 @@ export const Sidebar = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full bg-transparent border-none cursor-pointer text-red-300 font-inherit flex items-center gap-4 p-4 px-5 rounded-2xl font-semibold transition-all duration-300 hover:bg-red-500/20 hover:text-red-200 hover:scale-[0.98]"
+            className="w-full bg-transparent border-none cursor-pointer text-red-600 font-inherit flex items-center gap-4 p-4 px-5 rounded-2xl font-semibold transition-all duration-300 hover:bg-red-500/10 hover:text-red-700 hover:scale-[0.99]"
           >
             <LogOut size={20} />
             <span>Logout</span>

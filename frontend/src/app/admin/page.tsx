@@ -4,6 +4,19 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Download, RefreshCw, Send } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import ErrorBanner from '@/components/ErrorBanner';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
 import {
@@ -98,6 +111,37 @@ export default function AdminClaimsPage() {
   const totalCount = data?.total_count ?? 0;
   const hasPrev = page > 1;
   const hasNext = offset + claims.length < totalCount;
+
+  const adminStatusChartData = useMemo(() => {
+    const grouped = claims.reduce<Record<string, number>>((acc, claim) => {
+      const key = claim.admin_status || 'unknown';
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    return [
+      { name: 'Pending Review', value: grouped.pending_review ?? 0 },
+      { name: 'Approved', value: grouped.approved ?? 0 },
+      { name: 'Rejected', value: grouped.rejected ?? 0 },
+      { name: 'Needs More Info', value: grouped.needs_more_info ?? 0 },
+    ].filter((entry) => entry.value > 0);
+  }, [claims]);
+
+  const damageChartData = useMemo(
+    () =>
+      claims
+        .filter((claim) => typeof claim.latest_damage_percentage === 'number')
+        .slice()
+        .sort((left, right) => (right.latest_damage_percentage ?? 0) - (left.latest_damage_percentage ?? 0))
+        .slice(0, 6)
+        .map((claim) => ({
+          label: `#${claim.claim_id}`,
+          damage: claim.latest_damage_percentage ?? 0,
+        })),
+    [claims],
+  );
+
+  const adminStatusColors = ['#f59e0b', '#2f855a', '#dc2626', '#6366f1'];
 
   const refreshClaims = () => {
     setLastRefreshedAt(new Date().toLocaleTimeString());
@@ -214,15 +258,16 @@ export default function AdminClaimsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">Admin Supervision Panel</h1>
-          <p className="text-foreground-muted text-sm">
+          <p className="section-heading mb-2">Claims Operations</p>
+          <h1 className="page-title gradient-text">Admin Supervision Panel</h1>
+          <p className="page-description mt-3">
             Filter, review, and audit claim decisions with inline analysis context.
           </p>
         </div>
         <button
           type="button"
           onClick={refreshClaims}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-sm font-semibold"
+          className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main transition-colors hover:bg-white"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
@@ -230,9 +275,82 @@ export default function AdminClaimsPage() {
       </header>
       {lastRefreshedAt ? <p className="text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
 
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="feed-card">
+          <div className="mb-4">
+            <p className="section-heading mb-2">Admin Status Mix</p>
+            <p className="section-note">Current page breakdown of claim review states.</p>
+          </div>
+          <div className="h-[300px]">
+            {loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+            {!loading && adminStatusChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={adminStatusChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={72}
+                    outerRadius={108}
+                    paddingAngle={4}
+                  >
+                    {adminStatusChartData.map((entry, index) => (
+                      <Cell key={entry.name} fill={adminStatusColors[index % adminStatusColors.length]} />
+                    ))}
+                  </Pie>
+                  <Legend />
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: '1px solid rgba(47, 133, 90, 0.16)',
+                      background: 'rgba(255,255,255,0.96)',
+                      boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : null}
+            {!loading && adminStatusChartData.length === 0 ? (
+              <div className="empty-state h-full flex items-center justify-center">No admin status data on this page.</div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="feed-card">
+          <div className="mb-4">
+            <p className="section-heading mb-2">Highest Damage Claims</p>
+            <p className="section-note">Top claims on this page by latest estimated damage percentage.</p>
+          </div>
+          <div className="h-[300px]">
+            {loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+            {!loading && damageChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={damageChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                  <XAxis dataKey="label" tick={{ fill: '#486151', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#486151', fontSize: 12 }} domain={[0, 100]} />
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: '1px solid rgba(47, 133, 90, 0.16)',
+                      background: 'rgba(255,255,255,0.96)',
+                      boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                    }}
+                  />
+                  <Bar dataKey="damage" fill="#2f855a" radius={[10, 10, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : null}
+            {!loading && damageChartData.length === 0 ? (
+              <div className="empty-state h-full flex items-center justify-center">Damage percentages are not available yet.</div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
       <section className="glass rounded-2xl p-4 border border-primary/10 grid md:grid-cols-3 lg:grid-cols-6 gap-3">
         <select
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="select-styled"
           value={adminStatus}
           onChange={(e) => setParams({ admin_status: e.target.value || null, page: 1 })}
         >
@@ -244,7 +362,7 @@ export default function AdminClaimsPage() {
         </select>
 
         <select
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="select-styled"
           value={cropType}
           onChange={(e) => setParams({ crop_type: e.target.value || null, page: 1 })}
         >
@@ -255,7 +373,7 @@ export default function AdminClaimsPage() {
         </select>
 
         <select
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="select-styled"
           value={status}
           onChange={(e) => setParams({ status: e.target.value || null, page: 1 })}
         >
@@ -272,20 +390,20 @@ export default function AdminClaimsPage() {
 
         <input
           type="date"
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="control-input rounded-2xl px-3 py-2 text-sm"
           value={damageDateFrom}
           onChange={(e) => setParams({ damage_date_from: e.target.value || null, page: 1 })}
         />
 
         <input
           type="date"
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="control-input rounded-2xl px-3 py-2 text-sm"
           value={damageDateTo}
           onChange={(e) => setParams({ damage_date_to: e.target.value || null, page: 1 })}
         />
 
         <input
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="control-input rounded-2xl px-3 py-2 text-sm"
           placeholder="Search farmer/crop"
           value={search}
           onChange={(e) => setParams({ search: e.target.value || null, page: 1 })}
@@ -294,7 +412,7 @@ export default function AdminClaimsPage() {
 
       <section className="glass rounded-2xl p-4 border border-primary/10 grid md:grid-cols-4 gap-3">
         <input
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="control-input rounded-2xl px-3 py-2 text-sm"
           placeholder="Reviewer name"
           value={bulkReviewedBy}
           onChange={(e) => {
@@ -303,13 +421,13 @@ export default function AdminClaimsPage() {
           }}
         />
         <input
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="control-input rounded-2xl px-3 py-2 text-sm"
           placeholder="Amount (optional)"
           value={bulkAmount}
           onChange={(e) => setBulkAmount(e.target.value)}
         />
         <input
-          className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+          className="control-input rounded-2xl px-3 py-2 text-sm"
           placeholder="Bulk notes (optional)"
           value={bulkNotes}
           onChange={(e) => setBulkNotes(e.target.value)}
@@ -507,7 +625,7 @@ export default function AdminClaimsPage() {
 
                                 <div className="grid md:grid-cols-5 gap-2">
                                   <select
-                                    className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+                                    className="select-styled"
                                     value={state.admin_status}
                                     onChange={(e) =>
                                       setReviewState((prev) => ({
@@ -522,7 +640,7 @@ export default function AdminClaimsPage() {
                                     <option value="needs_more_info">Needs More Info</option>
                                   </select>
                                   <input
-                                    className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+                                    className="control-input rounded-2xl px-3 py-2 text-sm"
                                     placeholder="Reviewed by"
                                     value={state.reviewed_by}
                                     onChange={(e) =>
@@ -533,7 +651,7 @@ export default function AdminClaimsPage() {
                                     }
                                   />
                                   <input
-                                    className="rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+                                    className="control-input rounded-2xl px-3 py-2 text-sm"
                                     placeholder="Amount"
                                     value={state.recommended_insurance_amount}
                                     onChange={(e) =>
@@ -545,7 +663,7 @@ export default function AdminClaimsPage() {
                                   />
                                   <a
                                     href="#"
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5 no-underline"
+                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-3 py-2 text-sm font-semibold text-foreground-main no-underline transition-colors hover:bg-white"
                                     onClick={async (event) => {
                                       event.preventDefault();
                                       try {
@@ -569,7 +687,7 @@ export default function AdminClaimsPage() {
                                   </button>
                                 </div>
                                 <textarea
-                                  className="w-full rounded-xl border border-primary/20 bg-white/80 px-3 py-2 text-sm"
+                                  className="control-textarea w-full rounded-2xl px-3 py-2 text-sm"
                                   rows={3}
                                   placeholder="Admin notes"
                                   value={state.admin_notes}

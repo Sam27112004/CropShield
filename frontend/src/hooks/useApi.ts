@@ -9,6 +9,7 @@ import {
   getClaim,
   getClaims,
   getDashboardSummary,
+  getDashboardHomeSignals,
   getFarmProfile,
   getFarms,
   getJob,
@@ -30,6 +31,7 @@ import type {
   Claim,
   ClaimsListResponse,
   DashboardSummary,
+  DashboardHomeSignals,
   FarmProfile,
   FarmsListResponse,
   JobStatusResponse,
@@ -56,7 +58,18 @@ interface UseQueryResult<T> {
 
 interface UseQueryOptions {
   enabled?: boolean;
+  cacheKey?: string;
+  staleTimeMs?: number;
+  deps?: Array<string | number | boolean | null | undefined>;
 }
+
+type CacheEntry<T> = {
+  value: T;
+  expiresAt: number;
+};
+
+const queryCache = new Map<string, CacheEntry<unknown>>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
 
 function useQuery<T>(fetcher: () => Promise<T>, options?: UseQueryOptions): UseQueryResult<T> {
   const [data, setData] = useState<T | null>(null);
@@ -64,6 +77,9 @@ function useQuery<T>(fetcher: () => Promise<T>, options?: UseQueryOptions): UseQ
   const [error, setError] = useState<string | null>(null);
   const [rev, setRev] = useState(0);
   const enabled = options?.enabled ?? true;
+  const cacheKey = options?.cacheKey;
+  const staleTimeMs = options?.staleTimeMs ?? 0;
+  const deps = options?.deps ?? [];
 
   const refetch = useCallback(() => setRev((item) => item + 1), []);
 
@@ -79,9 +95,38 @@ function useQuery<T>(fetcher: () => Promise<T>, options?: UseQueryOptions): UseQ
     setLoading(true);
     setError(null);
 
-    fetcher()
+    if (cacheKey && staleTimeMs > 0) {
+      const cached = queryCache.get(cacheKey) as CacheEntry<T> | undefined;
+      if (cached && cached.expiresAt > Date.now()) {
+        setData(cached.value);
+        setLoading(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+    }
+
+    const request = (() => {
+      if (!cacheKey) {
+        return fetcher();
+      }
+      const existing = inFlightRequests.get(cacheKey) as Promise<T> | undefined;
+      if (existing) {
+        return existing;
+      }
+      const created = fetcher().finally(() => {
+        inFlightRequests.delete(cacheKey);
+      });
+      inFlightRequests.set(cacheKey, created);
+      return created;
+    })();
+
+    request
       .then((result) => {
         if (cancelled) return;
+        if (cacheKey && staleTimeMs > 0) {
+          queryCache.set(cacheKey, { value: result, expiresAt: Date.now() + staleTimeMs });
+        }
         setData(result);
         setLoading(false);
       })
@@ -97,13 +142,21 @@ function useQuery<T>(fetcher: () => Promise<T>, options?: UseQueryOptions): UseQ
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rev, enabled]);
+  }, [rev, enabled, cacheKey, staleTimeMs, ...deps]);
 
   return { data, loading, error, refetch };
 }
 
 export function useDashboardSummary() {
   return useQuery<DashboardSummary>(getDashboardSummary);
+}
+
+export function useDashboardHomeSignals(location = 'Pune', days = 3) {
+  return useQuery<DashboardHomeSignals>(() => getDashboardHomeSignals(location, days), {
+    cacheKey: `dashboard:home-signals:${location}:${days}`,
+    staleTimeMs: 60_000,
+    deps: [location, days],
+  });
 }
 
 export function useWeatherCurrent(location = 'Unknown') {

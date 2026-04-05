@@ -256,6 +256,16 @@ export interface DashboardSummary {
   average_decision_confidence: number;
 }
 
+export interface DashboardHomeSignals {
+  summary: DashboardSummary;
+  weather_current: WeatherCurrent;
+  weather_forecast: WeatherForecast;
+  weather_alerts: WeatherAlerts;
+  market_commodities: CommoditiesResponse;
+  market_trending: TrendingCommoditiesResponse;
+  market_mandi_data: MandiDataResponse;
+}
+
 export interface WeatherCurrent {
   location: string;
   temperature_c: number;

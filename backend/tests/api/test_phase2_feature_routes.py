@@ -107,6 +107,25 @@ async def test_weather_market_and_advisory_routes_return_200(client, admin_heade
 
 
 @pytest.mark.asyncio
+async def test_dashboard_home_signals_route_returns_200(client, admin_headers) -> None:
+    response = await client.get("/api/v1/dashboard/home-signals?location=Pune&days=3", headers=admin_headers)
+    assert response.status_code == 200
+    body = response.json()
+
+    assert "summary" in body
+    assert "weather_current" in body
+    assert "weather_forecast" in body
+    assert "weather_alerts" in body
+    assert "market_commodities" in body
+    assert "market_trending" in body
+    assert "market_mandi_data" in body
+
+    assert isinstance(body["summary"]["total_claims"], int)
+    assert isinstance(body["weather_forecast"]["days"], list)
+    assert isinstance(body["market_commodities"]["items"], list)
+
+
+@pytest.mark.asyncio
 async def test_forum_routes_create_and_search_posts(client, farmer_headers) -> None:
     create_resp = await client.post(
         "/api/v1/forum/posts",

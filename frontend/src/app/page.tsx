@@ -19,13 +19,7 @@ import {
 import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 import {
-  useDashboardSummary,
-  useMandiData,
-  useMarketCommodities,
-  useTrendingCommodities,
-  useWeatherAlerts,
-  useWeatherCurrent,
-  useWeatherForecast,
+  useDashboardHomeSignals,
 } from '@/hooks/useApi';
 
 function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType; loading?: boolean }) {
@@ -70,13 +64,7 @@ function SignalChartCard(props: {
 
 export default function HomePage() {
   const advisoryHistoryStorageKey = 'cropshield.advisory.history.v1';
-  const { data, loading, error, refetch } = useDashboardSummary();
-  const weatherQuery = useWeatherCurrent('Pune');
-  const forecastQuery = useWeatherForecast('Pune', 3);
-  const alertsQuery = useWeatherAlerts('Pune');
-  const commoditiesQuery = useMarketCommodities();
-  const trendingQuery = useTrendingCommodities();
-  const mandiQuery = useMandiData();
+  const signalsQuery = useDashboardHomeSignals('Pune', 3);
   const [advisoryMessage, setAdvisoryMessage] = useState('What should I monitor for heat stress this week?');
   const [advisoryReply, setAdvisoryReply] = useState<string | null>(null);
   const [advisoryError, setAdvisoryError] = useState<string | null>(null);
@@ -85,20 +73,28 @@ export default function HomePage() {
     Array<{ asked_at: string; question: string; reply: string }>
   >([]);
 
-  const totalClaims = data?.total_claims ?? 0;
-  const approved = data?.approved_claims ?? 0;
-  const avgDamage = data?.average_damage_percentage ?? 0;
-  const avgConfidence = data?.average_decision_confidence ?? 0;
+  const summary = signalsQuery.data?.summary;
+  const weatherCurrent = signalsQuery.data?.weather_current;
+  const weatherForecast = signalsQuery.data?.weather_forecast;
+  const weatherAlerts = signalsQuery.data?.weather_alerts;
+  const marketCommodities = signalsQuery.data?.market_commodities;
+  const marketTrending = signalsQuery.data?.market_trending;
+  const marketMandi = signalsQuery.data?.market_mandi_data;
 
-  const topCommodity = commoditiesQuery.data?.items?.[0];
-  const topTrending = trendingQuery.data?.items?.[0];
-  const topMandi = mandiQuery.data?.items?.[0];
-  const weatherChartData = forecastQuery.data?.days.map((day) => ({
+  const totalClaims = summary?.total_claims ?? 0;
+  const approved = summary?.approved_claims ?? 0;
+  const avgDamage = summary?.average_damage_percentage ?? 0;
+  const avgConfidence = summary?.average_decision_confidence ?? 0;
+
+  const topCommodity = marketCommodities?.items?.[0];
+  const topTrending = marketTrending?.items?.[0];
+  const topMandi = marketMandi?.items?.[0];
+  const weatherChartData = weatherForecast?.days.map((day) => ({
     date: day.date.slice(5),
     minTemp: day.min_temp_c,
     maxTemp: day.max_temp_c,
   })) ?? [];
-  const marketChartData = commoditiesQuery.data?.items.slice(0, 4).map((item) => ({
+  const marketChartData = marketCommodities?.items.slice(0, 4).map((item) => ({
     label: item.commodity,
     value: item.price,
   })) ?? [];
@@ -166,29 +162,13 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => {
-              refetch();
-              weatherQuery.refetch();
-              forecastQuery.refetch();
-              alertsQuery.refetch();
-              commoditiesQuery.refetch();
-              trendingQuery.refetch();
-              mandiQuery.refetch();
+              signalsQuery.refetch();
             }}
             className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main transition-colors hover:bg-white"
           >
             <RefreshCw
               size={14}
-              className={
-                loading ||
-                weatherQuery.loading ||
-                forecastQuery.loading ||
-                alertsQuery.loading ||
-                commoditiesQuery.loading ||
-                trendingQuery.loading ||
-                mandiQuery.loading
-                  ? 'animate-spin'
-                  : ''
-              }
+              className={signalsQuery.loading ? 'animate-spin' : ''}
             />
             Refresh
           </button>
@@ -196,7 +176,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {error ? <ErrorBanner message={`Backend summary is unavailable: ${error}`} onRetry={refetch} /> : null}
+      {signalsQuery.error ? <ErrorBanner message={`Dashboard signals are unavailable: ${signalsQuery.error}`} onRetry={signalsQuery.refetch} /> : null}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -204,28 +184,28 @@ export default function HomePage() {
           value={String(totalClaims)}
           subtitle="All farmer submissions"
           icon={Wheat}
-          loading={loading}
+          loading={signalsQuery.loading}
         />
         <MetricCard
           title="Admin Approved"
           value={String(approved)}
           subtitle="Supervised and finalized claims"
           icon={ShieldCheck}
-          loading={loading}
+          loading={signalsQuery.loading}
         />
         <MetricCard
           title="Avg Possible Damage"
           value={`${avgDamage.toFixed(1)}%`}
           subtitle="Model-estimated crop impact"
           icon={TriangleAlert}
-          loading={loading}
+          loading={signalsQuery.loading}
         />
         <MetricCard
           title="Avg Decision Confidence"
           value={`${(avgConfidence * 100).toFixed(1)}%`}
           subtitle="Internal AI+rules confidence"
           icon={ShieldCheck}
-          loading={loading}
+          loading={signalsQuery.loading}
         />
       </section>
 
@@ -239,37 +219,33 @@ export default function HomePage() {
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="feed-card">
           <p className="section-heading mb-2">Weather Snapshot</p>
-          {weatherQuery.loading ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
-          {weatherQuery.error ? <p className="text-sm text-rose-500">{weatherQuery.error}</p> : null}
-          {weatherQuery.data ? (
+          {signalsQuery.loading ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
+          {weatherCurrent ? (
             <div className="space-y-1 text-sm text-foreground-main">
-              <p className="text-lg font-bold">{weatherQuery.data.location}</p>
-              <p>{weatherQuery.data.temperature_c.toFixed(1)}°C • {weatherQuery.data.condition}</p>
-              <p className="text-foreground-muted">Humidity {weatherQuery.data.humidity_percent}% • Wind {weatherQuery.data.wind_kph.toFixed(1)} kph</p>
+              <p className="text-lg font-bold">{weatherCurrent.location}</p>
+              <p>{weatherCurrent.temperature_c.toFixed(1)}°C • {weatherCurrent.condition}</p>
+              <p className="text-foreground-muted">Humidity {weatherCurrent.humidity_percent}% • Wind {weatherCurrent.wind_kph.toFixed(1)} kph</p>
             </div>
           ) : null}
-          {forecastQuery.data?.days?.length ? (
+          {weatherForecast?.days?.length ? (
             <div className="mt-3 space-y-1 text-xs text-foreground-muted">
-              {forecastQuery.data.days.map((day) => (
+              {weatherForecast.days.map((day) => (
                 <p key={day.date}>
                   {day.date}: {day.min_temp_c.toFixed(1)}°C - {day.max_temp_c.toFixed(1)}°C ({day.condition})
                 </p>
               ))}
             </div>
           ) : null}
-          {alertsQuery.data?.alerts?.length ? (
+          {weatherAlerts?.alerts?.length ? (
             <p className="mt-3 text-xs text-amber-700">
-              Alert: {alertsQuery.data.alerts[0].title} ({alertsQuery.data.alerts[0].severity})
+              Alert: {weatherAlerts.alerts[0].title} ({weatherAlerts.alerts[0].severity})
             </p>
           ) : null}
         </div>
 
         <div className="feed-card">
           <p className="section-heading mb-2">Market Snapshot</p>
-          {(commoditiesQuery.loading || trendingQuery.loading) ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
-          {commoditiesQuery.error || trendingQuery.error ? (
-            <p className="text-sm text-rose-500">{commoditiesQuery.error ?? trendingQuery.error}</p>
-          ) : null}
+          {signalsQuery.loading ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
           {topCommodity ? (
             <p className="text-sm text-foreground-main">
               <span className="font-semibold">{topCommodity.commodity}</span> in {topCommodity.market}: {topCommodity.currency} {topCommodity.price.toFixed(0)}/{topCommodity.unit}
@@ -336,8 +312,7 @@ export default function HomePage() {
           title="Weather Outlook"
           description="Forecast low and high temperatures for the next few days."
         >
-          {forecastQuery.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
-          {forecastQuery.error ? <p className="text-sm text-rose-500">{forecastQuery.error}</p> : null}
+          {signalsQuery.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
           {weatherChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weatherChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -364,8 +339,7 @@ export default function HomePage() {
           title="Market Pulse"
           description="Current prices for the top commodities being tracked."
         >
-          {commoditiesQuery.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
-          {commoditiesQuery.error ? <p className="text-sm text-rose-500">{commoditiesQuery.error}</p> : null}
+          {signalsQuery.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
           {marketChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={marketChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>

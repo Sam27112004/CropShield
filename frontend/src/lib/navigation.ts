@@ -25,7 +25,6 @@ export interface NavItem {
 const ADMIN_NAV_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: BarChart3, label: 'Analysis', href: '/analysis' },
-  { icon: ClipboardList, label: 'Claims', href: '/claims' },
   { icon: CloudSun, label: 'Weather', href: '/weather' },
   { icon: TrendingUp, label: 'Market', href: '/market' },
   { icon: Wallet, label: 'Financial', href: '/financial' },

@@ -1,7 +1,16 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useMandiData, useMarketCommodities, useTrendingCommodities } from '@/hooks/useApi';
 
@@ -11,6 +20,33 @@ export default function MarketPage() {
   const mandi = useMandiData();
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
 
+  const commodityChartData = useMemo(
+    () => commodities.data?.items.slice(0, 6).map((item) => ({
+      label: item.commodity,
+      price: item.price,
+      market: item.market,
+    })) ?? [],
+    [commodities.data?.items],
+  );
+
+  const trendingChartData = useMemo(
+    () => trending.data?.items.slice(0, 6).map((item) => ({
+      label: item.commodity,
+      change: item.change_percent,
+    })) ?? [],
+    [trending.data?.items],
+  );
+
+  const mandiChartData = useMemo(
+    () => mandi.data?.items.slice(0, 6).map((item) => ({
+      label: item.commodity,
+      min: item.min_price,
+      modal: item.modal_price,
+      max: item.max_price,
+    })) ?? [],
+    [mandi.data?.items],
+  );
+
   const refreshAll = () => {
     setLastRefreshedAt(new Date().toLocaleTimeString());
     commodities.refetch();
@@ -19,16 +55,17 @@ export default function MarketPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="page-hero">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Market Intelligence</h1>
-          <p className="text-foreground-muted">Commodity snapshots, trending movement, and mandi references.</p>
+          <p className="section-heading mb-2">Market Signals</p>
+          <h1 className="page-title gradient-text">Market Intelligence</h1>
+          <p className="page-description mt-3">Commodity snapshots, trending movement, and mandi references.</p>
         </div>
         <button
           type="button"
           onClick={refreshAll}
-          className="inline-flex items-center gap-2 rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5"
+          className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main transition-colors hover:bg-white"
         >
           <RefreshCw size={14} className={commodities.loading || trending.loading || mandi.loading ? 'animate-spin' : ''} />
           Refresh
@@ -43,57 +80,101 @@ export default function MarketPage() {
         />
       ) : null}
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass rounded-2xl p-5 border border-primary/10 lg:col-span-2">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Commodities</p>
-          {commodities.loading ? <div className="h-28 animate-pulse rounded-lg bg-primary/10" /> : null}
-          <div className="space-y-2">
-            {commodities.data?.items.map((item, index) => (
-              <div key={`${item.commodity}-${index}`} className="rounded-xl border border-primary/10 px-3 py-2">
-                <p className="text-sm font-semibold text-foreground-main">{item.commodity}</p>
-                <p className="text-xs text-foreground-muted mt-1">{item.market} - {item.currency} {item.price.toFixed(0)}/{item.unit}</p>
-              </div>
-            ))}
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="feed-card xl:col-span-2">
+          <div className="mb-4">
+            <p className="section-heading mb-2">Commodity Prices</p>
+            <p className="section-note">Tracked commodity prices across the current market snapshot.</p>
           </div>
-          {!commodities.loading && !commodities.data?.items?.length ? (
-            <p className="text-sm text-foreground-muted mt-2">Commodity data unavailable.</p>
-          ) : null}
+          <div className="h-[320px]">
+            {commodities.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+            {!commodities.loading && commodityChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={commodityChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                  <XAxis dataKey="label" tick={{ fill: '#486151', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#486151', fontSize: 12 }} />
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: '1px solid rgba(47, 133, 90, 0.16)',
+                      background: 'rgba(255,255,255,0.96)',
+                      boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                    }}
+                  />
+                  <Bar dataKey="price" fill="#2f855a" radius={[10, 10, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : null}
+            {!commodities.loading && !commodityChartData.length ? (
+              <div className="empty-state h-full flex items-center justify-center">Commodity data unavailable.</div>
+            ) : null}
+          </div>
         </div>
 
-        <div className="glass rounded-2xl p-5 border border-primary/10">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Trending</p>
-          {trending.loading ? <div className="h-28 animate-pulse rounded-lg bg-primary/10" /> : null}
-          <div className="space-y-2">
-            {trending.data?.items.map((item, index) => (
-              <div key={`${item.commodity}-${index}`} className="rounded-xl border border-primary/10 px-3 py-2">
-                <p className="text-sm font-semibold text-foreground-main">{item.commodity}</p>
-                <p className={`text-xs mt-1 ${item.change_percent >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                  {item.change_percent >= 0 ? '+' : ''}{item.change_percent.toFixed(1)}%
-                </p>
-              </div>
-            ))}
+        <div className="feed-card">
+          <div className="mb-4">
+            <p className="section-heading mb-2">Trending Pulse</p>
+            <p className="section-note">Percentage change for the most active commodities.</p>
           </div>
-          {!trending.loading && !trending.data?.items?.length ? (
-            <p className="text-sm text-foreground-muted mt-2">Trending data unavailable.</p>
-          ) : null}
+          <div className="h-[320px]">
+            {trending.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+            {!trending.loading && trendingChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendingChartData} layout="vertical" margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                  <XAxis type="number" tick={{ fill: '#486151', fontSize: 12 }} />
+                  <YAxis type="category" dataKey="label" tick={{ fill: '#486151', fontSize: 12 }} width={90} />
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: '1px solid rgba(47, 133, 90, 0.16)',
+                      background: 'rgba(255,255,255,0.96)',
+                      boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                    }}
+                  />
+                  <Bar dataKey="change" fill="#68c18a" radius={[0, 10, 10, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : null}
+            {!trending.loading && !trendingChartData.length ? (
+              <div className="empty-state h-full flex items-center justify-center">Trending data unavailable.</div>
+            ) : null}
+          </div>
         </div>
       </section>
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
-        <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-2">Mandi Data</p>
-        {mandi.loading ? <div className="h-20 animate-pulse rounded-lg bg-primary/10" /> : null}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-          {mandi.data?.items.map((item, index) => (
-            <div key={`${item.mandi}-${item.commodity}-${index}`} className="rounded-xl border border-primary/10 px-3 py-2">
-              <p className="text-sm font-semibold text-foreground-main">{item.mandi}</p>
-              <p className="text-xs text-foreground-muted mt-1">{item.commodity}</p>
-              <p className="text-xs text-foreground-muted mt-1">Min {item.min_price.toFixed(0)} | Max {item.max_price.toFixed(0)} | Modal {item.modal_price.toFixed(0)}</p>
-            </div>
-          ))}
+      <section className="feed-card">
+        <div className="mb-4">
+          <p className="section-heading mb-2">Mandi Range</p>
+          <p className="section-note">Minimum, modal, and maximum price ranges for recent mandi records.</p>
         </div>
-        {!mandi.loading && !mandi.data?.items?.length ? (
-          <p className="text-sm text-foreground-muted mt-2">Mandi data unavailable.</p>
-        ) : null}
+        <div className="h-[320px]">
+          {mandi.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
+          {!mandi.loading && mandiChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={mandiChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                <XAxis dataKey="label" tick={{ fill: '#486151', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#486151', fontSize: 12 }} />
+                <RechartsTooltip
+                  contentStyle={{
+                    borderRadius: 16,
+                    border: '1px solid rgba(47, 133, 90, 0.16)',
+                    background: 'rgba(255,255,255,0.96)',
+                    boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                  }}
+                />
+                <Bar dataKey="min" fill="#c7e9d1" radius={[10, 10, 0, 0]} />
+                <Bar dataKey="modal" fill="#2f855a" radius={[10, 10, 0, 0]} />
+                <Bar dataKey="max" fill="#1b241d" radius={[10, 10, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : null}
+          {!mandi.loading && !mandiChartData.length ? (
+            <div className="empty-state h-full flex items-center justify-center">Mandi data unavailable.</div>
+          ) : null}
+        </div>
       </section>
     </div>
   );

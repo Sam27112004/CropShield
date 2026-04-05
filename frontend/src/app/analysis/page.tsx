@@ -9,7 +9,7 @@ import { useClaims, useDashboardSummary } from '@/hooks/useApi';
 function MetricCard(props: { title: string; value: string; subtitle: string; icon: React.ElementType; loading?: boolean }) {
   const Icon = props.icon;
   return (
-    <div className="glass rounded-2xl p-5 md:p-6 border border-primary/10">
+    <div className="stat-card p-5 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-foreground-dim font-semibold">{props.title}</p>
         <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -52,7 +52,7 @@ export default function AnalysisPage() {
   const completionRate = totalClaims > 0 ? (analysisCompleted / totalClaims) * 100 : 0;
 
   const allClaims = [...claims]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
   const refreshAll = () => {
     setLastRefreshedAt(new Date().toLocaleTimeString());
@@ -62,21 +62,24 @@ export default function AnalysisPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <header className="page-hero">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Analysis Dashboard</h1>
-          <p className="text-foreground-muted">
+            <p className="section-heading mb-2">Operations</p>
+          <h1 className="page-title gradient-text mb-2">Analysis Dashboard</h1>
+          <p className="page-description">
             Satellite-driven claim analysis progress, risk indicators, and quick access to individual claim results.
           </p>
         </div>
         <button
           type="button"
           onClick={refreshAll}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-foreground-main text-sm font-semibold hover:bg-primary/5"
+          className="inline-flex items-center gap-2 rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main hover:bg-white"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
+        </div>
       </header>
       {lastRefreshedAt ? <p className="text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
 
@@ -119,24 +122,24 @@ export default function AnalysisPage() {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass rounded-xl p-5 border border-primary/10">
+        <div className="feed-card p-5">
           <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-1">Completed Analyses</p>
           <p className="text-2xl font-bold text-foreground-main">{analysisCompleted}</p>
           <p className="text-xs text-foreground-muted mt-1">{completionRate.toFixed(1)}% completion rate</p>
         </div>
-        <div className="glass rounded-xl p-5 border border-primary/10">
+        <div className="feed-card p-5">
           <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-1">Pending Admin Review</p>
           <p className="text-2xl font-bold text-foreground-main">{pendingReview}</p>
           <p className="text-xs text-foreground-muted mt-1">Claims awaiting final review decision</p>
         </div>
-        <div className="glass rounded-xl p-5 border border-primary/10">
+        <div className="feed-card p-5">
           <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold mb-1">Needs Attention</p>
           <p className="text-2xl font-bold text-foreground-main">{needsAttention}</p>
           <p className="text-xs text-foreground-muted mt-1">Failed analysis or additional info requested</p>
         </div>
       </section>
 
-      <section className="glass rounded-2xl overflow-hidden border border-primary/10">
+      <section className="feed-card overflow-hidden p-0">
         <div className="px-5 py-4 border-b border-primary/10 flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground-main">All Claims (Admin View)</h2>
           <Link href="/claims" className="text-sm font-semibold text-primary no-underline">View all claims</Link>

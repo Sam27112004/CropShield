@@ -10,8 +10,8 @@ import { FARMER_ALLOWED_PREFIXES } from '@/lib/navigation';
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background-deep">
-      <div className="glass rounded-2xl border border-primary/10 px-6 py-5 text-sm text-foreground-muted">
+    <div className="min-h-screen flex items-center justify-center bg-background-app px-6">
+      <div className="glass rounded-2xl border border-border-glass px-6 py-5 text-sm text-foreground-muted shadow-premium">
         Loading authentication...
       </div>
     </div>
@@ -50,11 +50,11 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background-deep">
+    <div className="flex min-h-screen bg-background-app">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0 lg:ml-[316px]">
+      <div className="flex flex-col flex-1 min-w-0 lg:ml-[292px]">
         <Header />
-        <main className="flex-1 px-4 pt-20 pb-8 md:px-6 lg:px-10 lg:pt-[116px]">
+        <main className="flex-1 px-4 pt-20 pb-8 md:px-6 lg:px-8 lg:pt-[104px]">
           <OfflineBanner />
           {children}
         </main>

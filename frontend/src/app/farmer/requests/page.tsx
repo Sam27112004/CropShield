@@ -138,14 +138,6 @@ export default function FarmerRequestsPage() {
     taluka: [],
     village: [],
     plot: [],
-    selected: {
-      state_index: 0,
-      category_index: 0,
-      district_index: 0,
-      taluka_index: 0,
-      village_index: 0,
-      plot_index: 0,
-    },
   });
 
   const [landForm, setLandForm] = useState({
@@ -483,11 +475,12 @@ export default function FarmerRequestsPage() {
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-5">
-      <header className="glass rounded-2xl p-6 border border-primary/10">
+      <header className="page-hero">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold gradient-text mb-2">Farmer Request Portal</h1>
-            <p className="text-foreground-muted text-sm">
+            <p className="section-heading mb-2">Farmer Workflow</p>
+            <h1 className="page-title gradient-text mb-2">Farmer Request Portal</h1>
+            <p className="page-description text-sm">
               Raise crop-damage request, track status, and view detailed report only after admin approval.
             </p>
           </div>
@@ -495,7 +488,7 @@ export default function FarmerRequestsPage() {
             <button
               type="button"
               className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
-                view === 'new' ? 'bg-primary text-white border-primary' : 'bg-white/80 text-foreground-main border-primary/20'
+                view === 'new' ? 'bg-primary text-white border-primary' : 'bg-white/80 text-foreground-main border-border-glass'
               }`}
               onClick={() => setView('new')}
             >
@@ -504,7 +497,7 @@ export default function FarmerRequestsPage() {
             <button
               type="button"
               className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
-                view === 'status' ? 'bg-primary text-white border-primary' : 'bg-white/80 text-foreground-main border-primary/20'
+                view === 'status' ? 'bg-primary text-white border-primary' : 'bg-white/80 text-foreground-main border-border-glass'
               }`}
               onClick={() => setView('status')}
             >
@@ -523,7 +516,7 @@ export default function FarmerRequestsPage() {
       ) : null}
 
       {view === 'status' ? (
-        <section className="glass rounded-2xl overflow-hidden border border-primary/10">
+        <section className="feed-card overflow-hidden p-0">
           <div className="flex items-center justify-between px-5 py-4 border-b border-primary/10">
             <h2 className="text-lg font-bold text-foreground-main">Submitted Requests</h2>
             <button
@@ -725,7 +718,7 @@ export default function FarmerRequestsPage() {
           </div>
 
           {step === 1 ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10">
+            <section className="feed-card">
               <div className="flex items-center gap-2 mb-4">
                 <Satellite size={18} className="text-primary" />
                 <h2 className="text-xl font-semibold">Claim Entry Mode</h2>
@@ -993,7 +986,7 @@ export default function FarmerRequestsPage() {
           ) : null}
 
           {step === 2 && entryMode === 'automation' && farm ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10">
+            <section className="feed-card">
               <div className="flex items-center gap-2 mb-4">
                 <MapPinned size={18} className="text-primary" />
                 <h2 className="text-xl font-semibold">Verify Highlighted Farm Area</h2>
@@ -1041,7 +1034,7 @@ export default function FarmerRequestsPage() {
           ) : null}
 
           {step === 3 && (entryMode === 'manual' || farm) ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10">
+            <section className="feed-card">
               <h2 className="text-xl font-semibold mb-4">Claim Details & Satellite Settings</h2>
               {entryMode === 'manual' ? (
                 <p className="text-sm text-foreground-muted mb-4">
@@ -1135,7 +1128,7 @@ export default function FarmerRequestsPage() {
           ) : null}
 
           {step === 4 ? (
-            <section className="glass rounded-2xl p-6 border border-primary/10 text-center">
+            <section className="feed-card text-center">
               <Loader2 size={28} className="animate-spin text-primary mx-auto mb-4" />
               <p className="text-lg font-semibold text-foreground-main mb-2">Submitting your request...</p>
               <p className="text-sm text-foreground-muted">{jobInfo}</p>

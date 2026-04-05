@@ -1,6 +1,15 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import ErrorBanner from '@/components/ErrorBanner';
 import { advisoryChat, ApiError } from '@/lib/api';
 
@@ -16,6 +25,15 @@ export default function AdvisoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<AdvisoryEntry[]>([]);
+
+  const conversationChartData = useMemo(
+    () => entries.slice(0, 6).map((entry, index) => ({
+      label: `#${index + 1}`,
+      questionLength: entry.message.length,
+      replyLength: entry.reply.length,
+    })),
+    [entries],
+  );
 
   useEffect(() => {
     try {
@@ -63,11 +81,12 @@ export default function AdvisoryPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="page-hero">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">Advisory Assistant</h1>
-          <p className="text-foreground-muted">Ask crop-care questions and get immediate guidance.</p>
+          <p className="section-heading mb-2">Advisory Assistant</p>
+          <h1 className="page-title gradient-text">Crop Advisory</h1>
+          <p className="page-description mt-3">Ask crop-care questions and get immediate guidance.</p>
         </div>
         <button
           type="button"
@@ -76,7 +95,7 @@ export default function AdvisoryPage() {
             window.localStorage.removeItem(historyStorageKey);
           }}
           disabled={entries.length === 0}
-          className="rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-foreground-main hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-2xl border border-border-glass bg-white/80 px-4 py-2.5 text-sm font-semibold text-foreground-main transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           Clear Conversation
         </button>
@@ -84,28 +103,64 @@ export default function AdvisoryPage() {
 
       {error ? <ErrorBanner message={error} onRetry={() => setError(null)} /> : null}
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="feed-card xl:col-span-2">
+          <div className="mb-4">
+            <p className="section-heading mb-2">Ask the Assistant</p>
+            <p className="section-note">Request advice on irrigation, pests, nutrition, weather response, and crop care.</p>
+          </div>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
           <textarea
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={4}
             placeholder="Ask about irrigation, pests, nutrient stress, or weather response..."
-            className="w-full rounded-xl border border-primary/20 bg-white/60 px-3 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="control-textarea w-full rounded-2xl px-3 py-2 text-sm text-foreground-main focus:outline-none"
           />
           <button
             type="submit"
             disabled={loading}
-            className="self-start rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="self-start rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           >
             {loading ? 'Getting Advice...' : 'Ask Assistant'}
           </button>
         </form>
+        </div>
+
+        <div className="feed-card">
+          <div className="mb-4">
+            <p className="section-heading mb-2">Conversation Size</p>
+            <p className="section-note">Question and reply length across the latest advisory exchanges.</p>
+          </div>
+          <div className="h-[300px]">
+            {conversationChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={conversationChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,133,90,0.10)" />
+                  <XAxis dataKey="label" tick={{ fill: '#486151', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#486151', fontSize: 12 }} />
+                  <RechartsTooltip
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: '1px solid rgba(47, 133, 90, 0.16)',
+                      background: 'rgba(255,255,255,0.96)',
+                      boxShadow: '0 16px 30px rgba(31, 52, 38, 0.12)',
+                    }}
+                  />
+                  <Bar dataKey="questionLength" fill="#68c18a" radius={[10, 10, 0, 0]} />
+                  <Bar dataKey="replyLength" fill="#2f855a" radius={[10, 10, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="empty-state h-full flex items-center justify-center">No advisory messages yet.</div>
+            )}
+          </div>
+        </div>
       </section>
 
-      <section className="glass rounded-2xl p-5 border border-primary/10">
+      <section className="feed-card">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-wider text-foreground-dim font-bold">Conversation</p>
+          <p className="section-heading">Conversation</p>
           <p className="text-xs text-foreground-dim">{entries.length} message{entries.length === 1 ? '' : 's'}</p>
         </div>
         {entries.length === 0 ? (
@@ -113,7 +168,7 @@ export default function AdvisoryPage() {
         ) : (
           <div className="max-h-[420px] overflow-auto space-y-3 pr-1">
             {entries.map((entry, index) => (
-              <div key={`${entry.asked_at}-${index}`} className="rounded-xl border border-primary/10 px-3 py-3">
+              <div key={`${entry.asked_at}-${index}`} className="rounded-2xl border border-border-glass bg-white/80 px-3 py-3 shadow-sm">
                 <p className="text-xs text-foreground-dim">{new Date(entry.asked_at).toLocaleString()}</p>
                 <p className="mt-1 text-sm font-semibold text-foreground-main">Q: {entry.message}</p>
                 <p className="mt-2 text-sm text-foreground-muted">A: {entry.reply}</p>

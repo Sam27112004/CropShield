@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from time import monotonic
 
 import httpx
 
@@ -9,6 +10,11 @@ from app.core.config import get_settings
 
 
 class _WeatherProviderClient:
+    _resolve_cache: dict[str, tuple[tuple[float, float, str], float]] = {}
+    _response_cache: dict[str, tuple[dict[str, object], float]] = {}
+    _resolve_ttl_seconds = 1800.0
+    _response_ttl_seconds = 180.0
+
     def __init__(self) -> None:
         settings = get_settings()
         self.api_key = settings.openweather_api_key
@@ -21,16 +27,30 @@ class _WeatherProviderClient:
     async def _get(self, path: str, params: dict[str, object]) -> dict[str, object]:
         if not self.api_key:
             raise RuntimeError("OPENWEATHER_API_KEY not configured")
+        cache_key = f"{path}?" + "&".join(f"{key}={params[key]}" for key in sorted(params))
+        cached = self._response_cache.get(cache_key)
+        now = monotonic()
+        if cached and cached[1] > now:
+            return cached[0]
+
         query = {**params, "appid": self.api_key, "units": "metric"}
         async with httpx.AsyncClient(timeout=12.0) as client:
             response = await client.get(f"{self.base_url}{path}", params=query)
             response.raise_for_status()
             payload = response.json()
-            return payload if isinstance(payload, dict) else {}
+            normalized = payload if isinstance(payload, dict) else {}
+            self._response_cache[cache_key] = (normalized, now + self._response_ttl_seconds)
+            return normalized
 
     async def resolve_location(self, location: str) -> tuple[float, float, str] | None:
         if not self.api_key:
             return None
+        normalized_location = location.strip().lower()
+        cached = self._resolve_cache.get(normalized_location)
+        now = monotonic()
+        if cached and cached[1] > now:
+            return cached[0]
+
         async with httpx.AsyncClient(timeout=12.0) as client:
             response = await client.get(
                 f"{self.base_url}/geo/1.0/direct",
@@ -46,7 +66,9 @@ class _WeatherProviderClient:
         lat = float(first.get("lat", 0.0))
         lon = float(first.get("lon", 0.0))
         resolved = str(first.get("name") or location)
-        return lat, lon, resolved
+        result = (lat, lon, resolved)
+        self._resolve_cache[normalized_location] = (result, now + self._resolve_ttl_seconds)
+        return result
 
     async def current(self, lat: float, lon: float) -> dict[str, object]:
         return await self._get("/data/2.5/weather", {"lat": lat, "lon": lon})

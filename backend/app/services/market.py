@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from time import monotonic
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +33,9 @@ def _normalize_record(record: dict[str, Any]) -> dict[str, Any]:
 
 
 class _MarketProviderClient:
+    _records_cache: dict[int, tuple[list[dict[str, Any]], float]] = {}
+    _records_ttl_seconds = 180.0
+
     def __init__(self) -> None:
         settings = get_settings()
         self.api_key = settings.data_gov_in_api_key
@@ -45,6 +49,11 @@ class _MarketProviderClient:
     async def fetch_records(self, limit: int = 50) -> list[dict[str, Any]]:
         if not self.enabled:
             return []
+
+        cached = self._records_cache.get(limit)
+        now = monotonic()
+        if cached and cached[1] > now:
+            return cached[0]
 
         async with httpx.AsyncClient(timeout=12.0) as client:
             response = await client.get(
@@ -63,7 +72,9 @@ class _MarketProviderClient:
         records = payload.get("records")
         if not isinstance(records, list):
             return []
-        return [item for item in records if isinstance(item, dict)]
+        normalized = [item for item in records if isinstance(item, dict)]
+        self._records_cache[limit] = (normalized, now + self._records_ttl_seconds)
+        return normalized
 
 
 def _fallback_commodities() -> dict[str, object]:

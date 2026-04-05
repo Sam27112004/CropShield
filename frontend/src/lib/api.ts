@@ -12,6 +12,7 @@ import type {
   Claim,
   ClaimsListResponse,
   CreateClaimRequest,
+  DashboardHomeSignals,
   DashboardSummary,
   FarmerNotesRequest,
   FarmLookupRequest,
@@ -372,6 +373,11 @@ export async function waitForJobCompletion(
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   return apiFetch<DashboardSummary>('/dashboard/summary');
+}
+
+export async function getDashboardHomeSignals(location = 'Pune', days = 3): Promise<DashboardHomeSignals> {
+  const query = new URLSearchParams({ location, days: String(days) });
+  return apiFetch<DashboardHomeSignals>(`/dashboard/home-signals?${query.toString()}`);
 }
 
 export async function getWeatherCurrent(location = 'Unknown'): Promise<WeatherCurrent> {

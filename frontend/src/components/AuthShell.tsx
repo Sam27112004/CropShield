@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import OfflineBanner from '@/components/OfflineBanner';
 import { useAuth } from '@/context/AuthContext';
+import { FARMER_ALLOWED_PREFIXES } from '@/lib/navigation';
 
 function LoadingScreen() {
   return (
@@ -35,7 +36,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (user?.role === 'farmer' && !pathname.startsWith('/farmer')) {
+    if (user?.role === 'farmer' && !FARMER_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
       router.replace('/farmer/requests');
     }
   }, [isLoading, pathname, router, user]);

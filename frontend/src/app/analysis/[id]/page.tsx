@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import {
@@ -19,7 +20,14 @@ function ImagePanel({ title, src }: { title: string; src: string }) {
     <div className="glass rounded-xl overflow-hidden border border-primary/10">
       <p className="px-4 py-3 text-sm font-semibold text-foreground-main border-b border-primary/10">{title}</p>
       <div className="bg-black/20">
-        <img src={src} alt={title} className="w-full h-auto object-contain" />
+        <Image
+          src={src}
+          alt={title}
+          width={1280}
+          height={720}
+          unoptimized
+          className="h-auto w-full object-contain"
+        />
       </div>
     </div>
   );

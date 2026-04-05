@@ -73,8 +73,11 @@ def test_sqlite_import_script_maps_legacy_rows(tmp_path, monkeypatch) -> None:
     assert imported == 1
     assert skipped == 0
 
-    with Session(engine) as session:
-        claims = session.execute(select(Claim)).scalars().all()
-        assert len(claims) == 1
-        assert claims[0].id == 1
-        assert claims[0].farmer_name == "Legacy Farmer"
+    try:
+        with Session(engine) as session:
+            claims = session.execute(select(Claim)).scalars().all()
+            assert len(claims) == 1
+            assert claims[0].id == 1
+            assert claims[0].farmer_name == "Legacy Farmer"
+    finally:
+        engine.dispose()

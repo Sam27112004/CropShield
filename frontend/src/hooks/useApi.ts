@@ -12,6 +12,16 @@ import {
   getFarmProfile,
   getFarms,
   getJob,
+  getMarketCommodities,
+  getMandiData,
+  getTrendingCommodities,
+  getWeatherAlerts,
+  getWeatherCurrent,
+  getWeatherForecast,
+  advisoryChat,
+  cropPredict,
+  detectDisease,
+  getFinancialSummary,
 } from '@/lib/api';
 import type {
   AdminClaimsResponse,
@@ -23,6 +33,18 @@ import type {
   FarmProfile,
   FarmsListResponse,
   JobStatusResponse,
+  CommoditiesResponse,
+  MandiDataResponse,
+  TrendingCommoditiesResponse,
+  WeatherAlerts,
+  WeatherCurrent,
+  WeatherForecast,
+  AdvisoryChatResponse,
+  DiseaseDetectRequest,
+  DiseaseDetectResponse,
+  CropPredictRequest,
+  CropPredictResponse,
+  FinancialSummaryResponse,
 } from '@/types/api';
 
 interface UseQueryResult<T> {
@@ -82,6 +104,46 @@ function useQuery<T>(fetcher: () => Promise<T>, options?: UseQueryOptions): UseQ
 
 export function useDashboardSummary() {
   return useQuery<DashboardSummary>(getDashboardSummary);
+}
+
+export function useWeatherCurrent(location = 'Unknown') {
+  return useQuery<WeatherCurrent>(() => getWeatherCurrent(location));
+}
+
+export function useWeatherForecast(location = 'Unknown', days = 5) {
+  return useQuery<WeatherForecast>(() => getWeatherForecast(location, days));
+}
+
+export function useWeatherAlerts(location = 'Unknown') {
+  return useQuery<WeatherAlerts>(() => getWeatherAlerts(location));
+}
+
+export function useMarketCommodities() {
+  return useQuery<CommoditiesResponse>(getMarketCommodities);
+}
+
+export function useTrendingCommodities() {
+  return useQuery<TrendingCommoditiesResponse>(getTrendingCommodities);
+}
+
+export function useMandiData() {
+  return useQuery<MandiDataResponse>(getMandiData);
+}
+
+export function useFinancialSummary() {
+  return useQuery<FinancialSummaryResponse>(getFinancialSummary);
+}
+
+export function useAdvisoryChat(payload: { message: string; language: string }, enabled = false) {
+  return useQuery<AdvisoryChatResponse>(() => advisoryChat(payload), { enabled });
+}
+
+export function useCropPredict(payload: CropPredictRequest, enabled = false) {
+  return useQuery<CropPredictResponse>(() => cropPredict(payload), { enabled });
+}
+
+export function useDiseaseDetect(payload: DiseaseDetectRequest, enabled = false) {
+  return useQuery<DiseaseDetectResponse>(() => detectDisease(payload), { enabled });
 }
 
 export function useClaims(params?: { limit?: number; offset?: number }) {

@@ -256,6 +256,153 @@ export interface DashboardSummary {
   average_decision_confidence: number;
 }
 
+export interface WeatherCurrent {
+  location: string;
+  temperature_c: number;
+  condition: string;
+  humidity_percent: number;
+  wind_kph: number;
+  observed_at: string;
+}
+
+export interface WeatherForecastDay {
+  date: string;
+  min_temp_c: number;
+  max_temp_c: number;
+  condition: string;
+}
+
+export interface WeatherForecast {
+  location: string;
+  days: WeatherForecastDay[];
+}
+
+export interface WeatherAlert {
+  title: string;
+  severity: string;
+  description: string;
+}
+
+export interface WeatherAlerts {
+  location: string;
+  alerts: WeatherAlert[];
+}
+
+export interface CommodityPrice {
+  commodity: string;
+  market: string;
+  unit: string;
+  price: number;
+  currency: string;
+}
+
+export interface CommoditiesResponse {
+  items: CommodityPrice[];
+}
+
+export interface TrendingCommodity {
+  commodity: string;
+  change_percent: number;
+}
+
+export interface TrendingCommoditiesResponse {
+  items: TrendingCommodity[];
+}
+
+export interface MandiData {
+  mandi: string;
+  commodity: string;
+  min_price: number;
+  max_price: number;
+  modal_price: number;
+}
+
+export interface MandiDataResponse {
+  items: MandiData[];
+}
+
+export interface FinancialSummaryResponse {
+  estimated_revenue_inr: number;
+  estimated_cost_inr: number;
+  estimated_profit_inr: number;
+  margin_percent: number;
+  recommendation: string;
+}
+
+export interface AdvisoryChatRequest {
+  message: string;
+  language: string;
+}
+
+export interface AdvisoryChatResponse {
+  provider: string;
+  reply: string;
+  fallback_used: boolean;
+}
+
+export interface CropPredictRequest {
+  crop_type: string;
+  soil_type: string;
+  rainfall_mm: number;
+  temperature_c: number;
+}
+
+export interface CropPredictResponse {
+  expected_yield_tph: number;
+  risk_level: string;
+  recommendation: string;
+}
+
+export interface DiseaseDetectRequest {
+  image_name: string;
+  crop_type?: string;
+}
+
+export interface DiseaseDetectResponse {
+  predicted_disease: string;
+  confidence: number;
+  recommendation: string;
+}
+
+export interface ForumPost {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  like_count: number;
+  created_at: string;
+}
+
+export interface ForumReply {
+  id: number;
+  post_id: number;
+  content: string;
+  author: string;
+  created_at: string;
+}
+
+export interface ForumPostCreateRequest {
+  title: string;
+  content: string;
+}
+
+export interface ForumReplyCreateRequest {
+  content: string;
+}
+
+export interface ForumPostsResponse {
+  items: ForumPost[];
+}
+
+export interface ForumRepliesResponse {
+  items: ForumReply[];
+}
+
+export interface ForumSearchResponse {
+  query: string;
+  items: ForumPost[];
+}
+
 export interface AdminClaim {
   claim_id: number;
   farm_profile_id?: number | null;

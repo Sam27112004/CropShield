@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AlertTriangle, CheckCircle2, ChevronLeft, ExternalLink, Loader2, Lock, MapPinned, RefreshCw, Satellite, ShieldCheck, XCircle } from 'lucide-react';
 import ErrorBanner from '@/components/ErrorBanner';
 import FarmBoundaryMap from '@/components/FarmBoundaryMap';
@@ -112,9 +113,15 @@ export default function FarmerRequestsPage() {
   const [farmerNotesDraft, setFarmerNotesDraft] = useState<Record<number, string>>({});
   const [farmerNotesBusyId, setFarmerNotesBusyId] = useState<number | null>(null);
   const [farmerNotesErrorById, setFarmerNotesErrorById] = useState<Record<number, string>>({});
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
 
   const claimsQuery = useClaims({ limit: 100, offset: 0 });
   const claims = claimsQuery.data?.items ?? [];
+
+  const refreshRequests = () => {
+    setLastRefreshedAt(new Date().toLocaleTimeString());
+    claimsQuery.refetch();
+  };
 
   useEffect(() => {
     if (view !== 'status') return;
@@ -521,13 +528,14 @@ export default function FarmerRequestsPage() {
             <h2 className="text-lg font-bold text-foreground-main">Submitted Requests</h2>
             <button
               type="button"
-              onClick={claimsQuery.refetch}
+              onClick={refreshRequests}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-sm font-semibold"
             >
               <RefreshCw size={14} className={claimsQuery.loading ? 'animate-spin' : ''} />
               Refresh
             </button>
           </div>
+          {lastRefreshedAt ? <p className="px-5 pt-3 text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
@@ -540,6 +548,13 @@ export default function FarmerRequestsPage() {
                 </tr>
               </thead>
               <tbody>
+                {claimsQuery.loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-8 text-center text-foreground-dim">
+                      Loading requests...
+                    </td>
+                  </tr>
+                ) : null}
                 {!claimsQuery.loading && claims.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-8 text-center text-foreground-dim">
@@ -1003,7 +1018,14 @@ export default function FarmerRequestsPage() {
               {farm.screenshot_data_url ? (
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-foreground-main mb-2">Automation Screenshot</p>
-                  <img src={farm.screenshot_data_url} alt="Land record automation output" className="rounded-xl border border-primary/10" />
+                  <Image
+                    src={farm.screenshot_data_url}
+                    alt="Land record automation output"
+                    width={1280}
+                    height={720}
+                    unoptimized
+                    className="h-auto w-full rounded-xl border border-primary/10"
+                  />
                 </div>
               ) : null}
 

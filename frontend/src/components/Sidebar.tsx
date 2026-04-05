@@ -1,30 +1,40 @@
 'use client';
 
-import React from 'react';
-import { LayoutDashboard, FileText, BarChart3, Settings, LogOut, ShieldCheck, X, UserCog } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { LogOut, ShieldCheck, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
-
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-  { icon: FileText, label: 'Farmer Requests', href: '/farmer/requests' },
-  { icon: BarChart3, label: 'Analysis', href: '/analysis' },
-  { icon: UserCog, label: 'Admin', href: '/admin' },
-  { icon: Settings, label: 'Settings', href: '/settings' },
-];
-
-const farmerNavItems = [
-  { icon: FileText, label: 'Farmer Requests', href: '/farmer/requests' },
-];
+import { getRoleNavItems, isNavItemActive } from '@/lib/navigation';
 
 export const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { isOpen, close } = useSidebar();
-  const activeNavItems = user?.role === 'farmer' ? farmerNavItems : navItems.filter((item) => item.href !== '/farmer/requests');
+  const activeNavItems = getRoleNavItems(user?.role);
+
+  useEffect(() => {
+    const body = document.body;
+    if (isOpen) {
+      body.classList.add('overflow-hidden');
+    } else {
+      body.classList.remove('overflow-hidden');
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        close();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      body.classList.remove('overflow-hidden');
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [close, isOpen]);
 
   const handleLogout = () => {
     logout();
@@ -72,10 +82,10 @@ export const Sidebar = () => {
           </button>
         </div>
 
-        <nav className="flex flex-col gap-2 flex-1">
+        <nav className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-1">
           {activeNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = isNavItemActive(pathname, item.href);
 
             return (
               <Link

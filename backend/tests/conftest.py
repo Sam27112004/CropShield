@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -7,18 +8,20 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import OperationalError
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from datetime import timedelta
 
 
 TEST_DB_PATH = Path(__file__).resolve().parent / "test_api.db"
-os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB_PATH.as_posix()}"
-os.environ["SYNC_DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH.as_posix()}"
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB_PATH.as_posix()}?timeout=30"
+os.environ["SYNC_DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH.as_posix()}?timeout=30"
 os.environ["REDIS_URL"] = "redis://unused:6379/0"
 os.environ["CELERY_BROKER_URL"] = "memory://"
 os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
 os.environ["ENABLE_EARTH_ENGINE"] = "false"
+os.environ["ALLOW_DEMO_SATELLITE_FALLBACK"] = "true"
 os.environ["REPORT_ARTIFACTS_DIR"] = str((Path(__file__).resolve().parents[2] / "data" / "artifacts").as_posix())
 os.environ["JWT_SECRET"] = "test-secret"
 os.environ["JWT_ALGORITHM"] = "HS256"
@@ -63,14 +66,24 @@ class DummyRedis:
 @pytest_asyncio.fixture(scope="session")
 async def engine():
     if TEST_DB_PATH.exists():
-        TEST_DB_PATH.unlink()
-    async_engine = create_async_engine(os.environ["DATABASE_URL"], future=True)
+        try:
+            TEST_DB_PATH.unlink()
+        except PermissionError:
+            pass
+    async_engine = create_async_engine(
+        os.environ["DATABASE_URL"],
+        future=True,
+        connect_args={"timeout": 30},
+    )
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield async_engine
     await async_engine.dispose()
     if TEST_DB_PATH.exists():
-        TEST_DB_PATH.unlink()
+        try:
+            TEST_DB_PATH.unlink()
+        except PermissionError:
+            pass
 
 
 @pytest_asyncio.fixture
@@ -80,10 +93,19 @@ async def session_maker(engine):
 
 @pytest_asyncio.fixture(autouse=True)
 async def reset_db(session_maker):
-    async with session_maker() as session:
-        for table in reversed(Base.metadata.sorted_tables):
-            await session.execute(delete(table))
-        await session.commit()
+    for attempt in range(5):
+        try:
+            async with session_maker() as session:
+                for table in reversed(Base.metadata.sorted_tables):
+                    await session.execute(delete(table))
+                await session.commit()
+            break
+        except OperationalError as exc:
+            message = str(exc).lower()
+            if "database is locked" in message and attempt < 4:
+                await asyncio.sleep(0.1 * (attempt + 1))
+                continue
+            raise
     yield
 
 

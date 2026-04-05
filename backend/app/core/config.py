@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     celery_broker_url: str | None = None
     celery_result_backend: str | None = None
     enable_inline_jobs: bool = True
+    enable_weather_module: bool = True
+    enable_market_module: bool = True
+    enable_advisory_module: bool = True
+    enable_forum_module: bool = True
+    enable_disease_module: bool = True
 
     # Domain defaults preserved from the Streamlit prototype.
     default_gap_before_days: int = 5

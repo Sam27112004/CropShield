@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Download, RefreshCw, Send } from 'lucide-react';
 import ErrorBanner from '@/components/ErrorBanner';
@@ -89,13 +90,19 @@ export default function AdminClaimsPage() {
   const [bulkReviewedBy, setBulkReviewedBy] = useState('Admin');
   const [bulkNotes, setBulkNotes] = useState('');
   const [bulkAmount, setBulkAmount] = useState('');
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkFieldErrors, setBulkFieldErrors] = useState<{ selected?: string; reviewedBy?: string }>({});
 
-  const claims = data?.items ?? [];
+  const claims = useMemo(() => data?.items ?? [], [data?.items]);
   const totalCount = data?.total_count ?? 0;
   const hasPrev = page > 1;
   const hasNext = offset + claims.length < totalCount;
+
+  const refreshClaims = () => {
+    setLastRefreshedAt(new Date().toLocaleTimeString());
+    refetch();
+  };
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -214,13 +221,14 @@ export default function AdminClaimsPage() {
         </div>
         <button
           type="button"
-          onClick={refetch}
+          onClick={refreshClaims}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/20 text-sm font-semibold"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </header>
+      {lastRefreshedAt ? <p className="text-xs text-foreground-dim">Refreshed at {lastRefreshedAt}</p> : null}
 
       <section className="glass rounded-2xl p-4 border border-primary/10 grid md:grid-cols-3 lg:grid-cols-6 gap-3">
         <select
@@ -345,6 +353,20 @@ export default function AdminClaimsPage() {
               </tr>
             </thead>
             <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-foreground-dim">
+                    Loading claims...
+                  </td>
+                </tr>
+              ) : null}
+              {!loading && claims.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-foreground-dim">
+                    No claims match the current filters.
+                  </td>
+                </tr>
+              ) : null}
               {claims.map((claim) => {
                 const state = getState(claim);
                 const expanded = expandedClaimId === claim.claim_id;
@@ -468,7 +490,15 @@ export default function AdminClaimsPage() {
                                       artifacts.evi_before_data_url,
                                       artifacts.evi_after_data_url,
                                     ].map((src, index) => (
-                                      <img key={`${claim.claim_id}-${index}`} src={src} alt={`Artifact ${index + 1}`} loading="lazy" className="rounded-lg border border-primary/10" />
+                                      <Image
+                                        key={`${claim.claim_id}-${index}`}
+                                        src={src}
+                                        alt={`Artifact ${index + 1}`}
+                                        width={320}
+                                        height={220}
+                                        unoptimized
+                                        className="h-auto w-full rounded-lg border border-primary/10"
+                                      />
                                     ))}
                                   </div>
                                 ) : (

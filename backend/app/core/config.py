@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     enable_forum_module: bool = True
     enable_disease_module: bool = True
 
+    grok_api_key: str | None = None
+    grok_base_url: str = "https://api.x.ai/v1"
+    grok_model: str = "grok-2-latest"
+    grok_timeout_seconds: float = 20.0
+    groq_api_key: str | None = None
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "llama-3.1-8b-instant"
+
     # Domain defaults preserved from the Streamlit prototype.
     default_gap_before_days: int = 5
     default_gap_after_days: int = 5

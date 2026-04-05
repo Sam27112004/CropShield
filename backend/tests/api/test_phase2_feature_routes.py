@@ -26,7 +26,7 @@ async def test_weather_market_and_advisory_routes_return_200(client, admin_heade
     )
     assert advisory_resp.status_code == 200
     advisory_body = advisory_resp.json()
-    assert advisory_body["provider"] == "fallback"
+    assert advisory_body["provider"] in {"fallback", "grok", "groq"}
 
     crop_predict_resp = await client.post(
         "/api/v1/advisory/crop-predict",

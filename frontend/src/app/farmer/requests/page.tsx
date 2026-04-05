@@ -138,6 +138,14 @@ export default function FarmerRequestsPage() {
     taluka: [],
     village: [],
     plot: [],
+    selected: {
+      state_index: 0,
+      category_index: 0,
+      district_index: 0,
+      taluka_index: 0,
+      village_index: 0,
+      plot_index: 0,
+    },
   });
 
   const [landForm, setLandForm] = useState({

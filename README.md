@@ -353,5 +353,3 @@ Then inspect and fix TypeScript/build errors shown in terminal output.
 - backend/README.md
 - frontend/README.md
 - docs/copilot.md
-
-If you are onboarding a new team member, start with this README, then move to backend/README.md and frontend/README.md for service-specific details.

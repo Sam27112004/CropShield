@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 
+from app.db.models import AnalysisRun, IndexMetric
 from app.core.config import Settings, get_settings
 from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_weather_market_and_advisory_routes_return_200(client, admin_headers) -> None:
+async def test_weather_market_and_advisory_routes_return_200(client, admin_headers, session_maker) -> None:
     weather_resp = await client.get("/api/v1/weather/current?location=Pune", headers=admin_headers)
     assert weather_resp.status_code == 200
     weather_body = weather_resp.json()
@@ -41,9 +44,66 @@ async def test_weather_market_and_advisory_routes_return_200(client, admin_heade
     assert crop_predict_resp.status_code == 200
     assert crop_predict_resp.json()["expected_yield_tph"] > 0
 
+    claim_resp = await client.post(
+        "/api/v1/claims",
+        json={
+            "farmer_name": "Finance Seed",
+            "crop_type": "Rice",
+            "farm_area_hectares": 3.5,
+            "latitude": 18.5204,
+            "longitude": 73.8567,
+            "damage_date": "2023-09-01",
+        },
+        headers=admin_headers,
+    )
+    assert claim_resp.status_code == 201
+    claim_id = claim_resp.json()["id"]
+
+    async with session_maker() as session:
+        analysis_run = AnalysisRun(
+            claim_id=claim_id,
+            status="completed",
+            status_message="seeded financial summary test",
+            gap_before=5,
+            gap_after=5,
+            window_days=10,
+            max_cloud_threshold=100,
+            started_at=datetime.now(tz=timezone.utc),
+            completed_at=datetime.now(tz=timezone.utc),
+        )
+        session.add(analysis_run)
+        await session.flush()
+        session.add(
+            IndexMetric(
+                analysis_run_id=analysis_run.id,
+                ndvi_before=0.81234,
+                ndvi_after=0.42321,
+                ndwi_before=0.11234,
+                ndwi_after=0.06234,
+                evi_before=0.70234,
+                evi_after=0.31234,
+                damage_percentage=38.5,
+            )
+        )
+        await session.commit()
+
+    review_resp = await client.patch(
+        f"/api/v1/admin/claims/{claim_id}/review",
+        json={
+            "admin_status": "approved",
+            "reviewed_by": "Admin User",
+            "admin_notes": "Seeded for financial summary test",
+            "recommended_insurance_amount": 45000,
+        },
+        headers=admin_headers,
+    )
+    assert review_resp.status_code == 200
+
     financial_resp = await client.get("/api/v1/market/financial-summary", headers=admin_headers)
     assert financial_resp.status_code == 200
-    assert financial_resp.json()["estimated_revenue_inr"] > 0
+    financial_body = financial_resp.json()
+    assert financial_body["estimated_revenue_inr"] > 0
+    assert financial_body["estimated_cost_inr"] > 0
 
 
 @pytest.mark.asyncio

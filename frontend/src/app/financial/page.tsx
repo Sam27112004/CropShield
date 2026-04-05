@@ -51,9 +51,9 @@ export default function FinancialPage() {
     <div className="flex flex-col gap-6 lg:gap-8">
       <header className="page-hero">
         <div>
-          <p className="section-heading mb-2">Financial Outlook</p>
+          <p className="section-heading mb-2">Claim Finance</p>
           <h1 className="page-title gradient-text">Financial Insights</h1>
-          <p className="page-description mt-3">Revenue, costs, margin outlook, and guidance for planning decisions.</p>
+          <p className="page-description mt-3">Approved claim exposure, expected payout reserve, and margin outlook from real claims.</p>
         </div>
         <button
           type="button"
@@ -70,19 +70,19 @@ export default function FinancialPage() {
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="stat-card">
-          <p className="stat-card__label">Revenue</p>
+          <p className="stat-card__label">Approved Exposure</p>
           {summary.loading ? <div className="mt-1 h-7 w-28 animate-pulse rounded bg-primary/10" /> : <p className="stat-card__value">{summary.data ? formatInr(summary.data.estimated_revenue_inr) : '-'}</p>}
         </div>
         <div className="stat-card">
-          <p className="stat-card__label">Cost</p>
+          <p className="stat-card__label">Expected Payout</p>
           {summary.loading ? <div className="mt-1 h-7 w-28 animate-pulse rounded bg-primary/10" /> : <p className="stat-card__value">{summary.data ? formatInr(summary.data.estimated_cost_inr) : '-'}</p>}
         </div>
         <div className="stat-card">
-          <p className="stat-card__label">Profit</p>
+          <p className="stat-card__label">Reserve</p>
           {summary.loading ? <div className="mt-1 h-7 w-28 animate-pulse rounded bg-primary/10" /> : <p className="stat-card__value">{summary.data ? formatInr(summary.data.estimated_profit_inr) : '-'}</p>}
         </div>
         <div className="stat-card">
-          <p className="stat-card__label">Margin</p>
+          <p className="stat-card__label">Reserve Margin</p>
           {summary.loading ? <div className="mt-1 h-7 w-28 animate-pulse rounded bg-primary/10" /> : <p className="stat-card__value">{summary.data ? `${summary.data.margin_percent.toFixed(1)}%` : '-'}</p>}
         </div>
       </section>
@@ -90,8 +90,8 @@ export default function FinancialPage() {
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <div className="feed-card">
           <div className="mb-4">
-            <p className="section-heading mb-2">Financial Composition</p>
-            <p className="section-note">Revenue, cost, and profit values in INR for the current planning view.</p>
+            <p className="section-heading mb-2">Claim Composition</p>
+            <p className="section-note">Approved exposure, expected payout, and reserve derived from real claim reviews.</p>
           </div>
           <div className="h-[320px]">
             {summary.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}
@@ -118,8 +118,8 @@ export default function FinancialPage() {
 
         <div className="feed-card">
           <div className="mb-4">
-            <p className="section-heading mb-2">Margin Split</p>
-            <p className="section-note">Current margin share versus remaining room.</p>
+            <p className="section-heading mb-2">Reserve Split</p>
+            <p className="section-note">Reserve strength versus payout obligation across reviewed claims.</p>
           </div>
           <div className="h-[320px]">
             {summary.loading ? <div className="h-full animate-pulse rounded-2xl bg-primary/10" /> : null}

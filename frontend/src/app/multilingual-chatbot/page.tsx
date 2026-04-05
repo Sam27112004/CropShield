@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
+import StructuredAdvisoryText from '@/components/StructuredAdvisoryText';
 import { advisoryChat, ApiError } from '@/lib/api';
 
 interface Entry {
@@ -105,7 +106,10 @@ export default function MultilingualChatbotPage() {
             <div key={`${entry.language}-${index}`} className="rounded-xl border border-border-glass bg-white/80 px-3 py-2">
               <p className="text-xs text-foreground-dim">Language: {entry.language}</p>
               <p className="text-sm font-semibold text-foreground-main mt-1">Q: {entry.question}</p>
-              <p className="text-sm text-foreground-muted mt-1">A: {entry.answer}</p>
+              <div className="mt-1">
+                <p className="text-sm font-semibold text-foreground-main">A:</p>
+                <StructuredAdvisoryText text={entry.answer} />
+              </div>
             </div>
           ))}
         </div>

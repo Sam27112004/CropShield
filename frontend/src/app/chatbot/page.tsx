@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import ErrorBanner from '@/components/ErrorBanner';
+import StructuredAdvisoryText from '@/components/StructuredAdvisoryText';
 import { advisoryChat, ApiError } from '@/lib/api';
 
 interface Message {
@@ -80,7 +81,7 @@ export default function ChatbotPage() {
               className={`rounded-2xl px-3 py-3 text-sm ${message.role === 'user' ? 'bg-primary/10 text-foreground-main' : 'border border-border-glass bg-white/80 text-foreground-muted'}`}
             >
               <p className="font-semibold mb-1">{message.role === 'user' ? 'You' : 'Assistant'}</p>
-              <p>{message.text}</p>
+              {message.role === 'assistant' ? <StructuredAdvisoryText text={message.text} /> : <p>{message.text}</p>}
             </div>
           ))}
         </div>

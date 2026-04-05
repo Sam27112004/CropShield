@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import ErrorBanner from '@/components/ErrorBanner';
+import StructuredAdvisoryText from '@/components/StructuredAdvisoryText';
 import { advisoryChat, ApiError } from '@/lib/api';
 
 interface AdvisoryEntry {
@@ -171,7 +172,10 @@ export default function AdvisoryPage() {
               <div key={`${entry.asked_at}-${index}`} className="rounded-2xl border border-border-glass bg-white/80 px-3 py-3 shadow-sm">
                 <p className="text-xs text-foreground-dim">{new Date(entry.asked_at).toLocaleString()}</p>
                 <p className="mt-1 text-sm font-semibold text-foreground-main">Q: {entry.message}</p>
-                <p className="mt-2 text-sm text-foreground-muted">A: {entry.reply}</p>
+                <div className="mt-2">
+                  <p className="text-sm font-semibold text-foreground-main mb-1">A:</p>
+                  <StructuredAdvisoryText text={entry.reply} />
+                </div>
               </div>
             ))}
           </div>
